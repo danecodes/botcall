@@ -275,4 +275,109 @@ program
     }
   });
 
+// ============ USAGE ============
+
+program
+  .command('usage')
+  .description('Show current plan and usage')
+  .action(async () => {
+    if (!isConfigured()) {
+      console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
+      process.exit(1);
+    }
+
+    const spinner = ora('Fetching usage...').start();
+    
+    try {
+      const usage = await api.getUsage();
+      spinner.stop();
+      
+      console.log('\n' + chalk.bold('Plan: ') + chalk.cyan(usage.plan.toUpperCase()));
+      console.log('\nLimits:');
+      console.log(`  Phone numbers: ${usage.usage.phoneNumbers}/${usage.limits.phoneNumbers}`);
+      console.log(`  SMS this month: ${usage.usage.smsThisMonth}/${usage.limits.smsPerMonth}`);
+      
+      if (usage.plan === 'free') {
+        console.log('\n' + chalk.yellow('Upgrade to provision phone numbers:'));
+        console.log(chalk.cyan('  botcall upgrade starter') + ' - $9/mo (1 number, 100 SMS)');
+        console.log(chalk.cyan('  botcall upgrade pro') + '     - $29/mo (5 numbers, 500 SMS)');
+      }
+    } catch (error) {
+      spinner.fail(`Failed: ${(error as Error).message}`);
+      process.exit(1);
+    }
+  });
+
+// ============ UPGRADE ============
+
+program
+  .command('upgrade')
+  .description('Upgrade to a paid plan')
+  .argument('<plan>', 'Plan to upgrade to (starter | pro)')
+  .action(async (plan: string) => {
+    if (!isConfigured()) {
+      console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
+      process.exit(1);
+    }
+
+    if (!['starter', 'pro'].includes(plan)) {
+      console.error(chalk.red('Invalid plan. Choose: starter ($9/mo) or pro ($29/mo)'));
+      process.exit(1);
+    }
+
+    const spinner = ora('Creating checkout session...').start();
+    
+    try {
+      const { url } = await api.createCheckout(plan as 'starter' | 'pro');
+      spinner.stop();
+      
+      console.log(chalk.green('Opening checkout in browser...\n'));
+      console.log('If browser doesn\'t open, visit:');
+      console.log(chalk.cyan(url) + '\n');
+      
+      // Open URL in default browser
+      const { exec } = await import('child_process');
+      const command = process.platform === 'darwin' ? 'open' 
+        : process.platform === 'win32' ? 'start' 
+        : 'xdg-open';
+      exec(`${command} "${url}"`);
+    } catch (error) {
+      spinner.fail(`Failed: ${(error as Error).message}`);
+      process.exit(1);
+    }
+  });
+
+// ============ BILLING ============
+
+program
+  .command('billing')
+  .description('Manage your subscription')
+  .action(async () => {
+    if (!isConfigured()) {
+      console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
+      process.exit(1);
+    }
+
+    const spinner = ora('Opening billing portal...').start();
+    
+    try {
+      const { url } = await api.createPortal();
+      spinner.stop();
+      
+      console.log(chalk.green('Opening billing portal in browser...\n'));
+      console.log('If browser doesn\'t open, visit:');
+      console.log(chalk.cyan(url) + '\n');
+      
+      // Open URL in default browser
+      const { exec } = await import('child_process');
+      const command = process.platform === 'darwin' ? 'open' 
+        : process.platform === 'win32' ? 'start' 
+        : 'xdg-open';
+      exec(`${command} "${url}"`);
+    } catch (error) {
+      spinner.fail(`Failed: ${(error as Error).message}`);
+      process.exit(1);
+    }
+  });
+
 program.parse();

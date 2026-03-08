@@ -125,6 +125,34 @@ export async function pollForMessage(options: {
   return apiRequest<PollResult>(`/v1/phone/messages/poll${query}`);
 }
 
+// ============ Billing ============
+
+export interface Usage {
+  plan: 'free' | 'starter' | 'pro';
+  limits: { phoneNumbers: number; smsPerMonth: number };
+  usage: { phoneNumbers: number; smsThisMonth: number };
+  canProvision: boolean;
+  canReceiveSms: boolean;
+}
+
+export async function getUsage(): Promise<Usage> {
+  return apiRequest<Usage>('/v1/billing/usage');
+}
+
+export async function createCheckout(plan: 'starter' | 'pro', returnUrl?: string): Promise<{ url: string }> {
+  return apiRequest<{ url: string }>('/v1/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ plan, returnUrl: returnUrl || 'https://botcall.io' }),
+  });
+}
+
+export async function createPortal(returnUrl?: string): Promise<{ url: string }> {
+  return apiRequest<{ url: string }>('/v1/billing/portal', {
+    method: 'POST',
+    body: JSON.stringify({ returnUrl: returnUrl || 'https://botcall.io' }),
+  });
+}
+
 // ============ Code Extraction (local) ============
 
 export function extractCode(text: string): string | null {

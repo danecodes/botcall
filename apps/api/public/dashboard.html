@@ -516,8 +516,9 @@
       show('auth-section');
       clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
         appearance: clerkAppearance,
-        afterSignInUrl: window.location.href,
-        afterSignUpUrl: window.location.href,
+        afterSignInUrl: '/dashboard',
+        afterSignUpUrl: '/dashboard',
+        signUpUrl: '/dashboard',
       });
       clerk.addListener(({ user }) => {
         if (user) checkAndRoute();
@@ -531,7 +532,7 @@
 
     async function initClerk() {
       const script = document.createElement('script');
-      script.src = `https://teaching-hamster-91.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
+      script.src = `https://clerk.botcall.io/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
       script.setAttribute('data-clerk-publishable-key', CLERK_PK);
       script.crossOrigin = 'anonymous';
       script.async = true;

@@ -45,11 +45,12 @@ export async function authMiddleware(c: Context, next: Next) {
 
   // Try Clerk JWT
   try {
-    // @clerk/backend v3 wraps verifyToken with withLegacyReturn at runtime,
-    // returning JwtPayload directly. Cast away the JwtReturnType wrapper type.
+    // @clerk/backend v3 requires authorizedParties when the JWT has an azp claim.
+    // Without it, verifyToken throws "Invalid JWT Authorized party claim (azp)".
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
+      authorizedParties: ['botcall.io', 'https://botcall.io'],
     }) as any;
 
     const sub: string | undefined = payload?.sub ?? payload?.data?.sub;

@@ -171,8 +171,16 @@ app.get('/messages/poll', async (c) => {
   const timeout = parseInt(c.req.query('timeout') || '30', 10);
   const since = c.req.query('since'); // ISO timestamp
 
+  const limitCheck = await checkUsageLimit(userId, 'receive_sms');
+  if (!limitCheck.allowed) {
+    return c.json({
+      success: false,
+      error: { code: 'LIMIT_EXCEEDED', message: limitCheck.reason },
+    }, 403);
+  }
+
   const startTime = Date.now();
-  const timeoutMs = Math.min(timeout, 120) * 1000; // Max 120 seconds
+  const timeoutMs = Math.min(timeout, 30) * 1000; // Max 30 seconds
 
   while (Date.now() - startTime < timeoutMs) {
     const messages = await phoneService.getMessages(userId, { limit: 10 });

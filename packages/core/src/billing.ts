@@ -146,6 +146,7 @@ export async function handleStripeWebhook(payload: string, signature: string): P
  */
 export async function getUserPlanAndUsage(userId: string): Promise<{
   plan: PlanId;
+  status: string;
   limits: { phoneNumbers: number; smsPerMonth: number };
   usage: { phoneNumbers: number; smsThisMonth: number };
   canProvision: boolean;
@@ -183,6 +184,7 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
 
   return {
     plan,
+    status: sub?.status ?? 'none',
     limits,
     usage: { phoneNumbers: phoneNumberCount, smsThisMonth },
     canProvision: phoneNumberCount < limits.phoneNumbers,
@@ -194,10 +196,15 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
  * Check if user can perform an action
  */
 export async function checkUsageLimit(userId: string, action: 'provision' | 'receive_sms'): Promise<{ allowed: boolean; reason?: string }> {
-  const { plan, limits, usage, canProvision, canReceiveSms } = await getUserPlanAndUsage(userId);
+  const usage = await getUserPlanAndUsage(userId);
+  const { plan, status, limits, canProvision, canReceiveSms } = usage;
 
   if (plan === 'inactive') {
     return { allowed: false, reason: 'No active subscription. Please subscribe to a plan.' };
+  }
+
+  if (status === 'canceled' || status === 'past_due') {
+    return { allowed: false, reason: 'Subscription is not active. Please update your billing.' };
   }
 
   if (action === 'provision' && !canProvision) {

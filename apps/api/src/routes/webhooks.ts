@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { Webhook } from 'svix';
+import { createVerify } from 'crypto';
 import { getDb, users, phoneNumbers, eq } from '@botcall/db';
 import { createUserFromClerk, createApiKey } from '@botcall/core';
 import { handleIncomingSms } from '@botcall/phone';
@@ -12,7 +13,30 @@ const app = new Hono();
  */
 app.post('/telnyx/sms', async (c) => {
   try {
-    const payload = await c.req.json();
+    const rawBody = await c.req.text();
+    const publicKey = process.env.TELNYX_PUBLIC_KEY;
+    const telnyxTimestamp = c.req.header('telnyx-timestamp');
+    const telnyxSignature = c.req.header('telnyx-signature-ed25519-signature');
+
+    if (publicKey) {
+      if (!telnyxTimestamp || !telnyxSignature) {
+        return c.json({ error: 'Missing signature headers' }, 400);
+      }
+      const signedPayload = `${telnyxTimestamp}|${rawBody}`;
+      const verify = createVerify('Ed25519');
+      verify.update(signedPayload);
+      const isValid = verify.verify(
+        { key: publicKey, format: 'pem' },
+        Buffer.from(telnyxSignature, 'base64')
+      );
+      if (!isValid) {
+        return c.json({ error: 'Invalid signature' }, 400);
+      }
+    } else {
+      console.warn('⚠️ TELNYX_PUBLIC_KEY not set — skipping signature verification');
+    }
+
+    const payload = JSON.parse(rawBody);
 
     // Telnyx wraps event data in payload.data
     const event = payload.data;

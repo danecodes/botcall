@@ -45,28 +45,27 @@ export async function authMiddleware(c: Context, next: Next) {
 
   // Try Clerk JWT
   try {
-    const result = await verifyToken(token, {
+    // @clerk/backend v3 wraps verifyToken with withLegacyReturn at runtime,
+    // returning JwtPayload directly. Cast away the JwtReturnType wrapper type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    }) as any;
 
-    if (!result.data || result.errors?.length) {
-      throw new Error(result.errors?.[0]?.message || 'Token verification failed');
-    }
+    const sub: string | undefined = payload?.sub ?? payload?.data?.sub;
 
-    const payload = result.data;
-
-    if (!payload.sub) {
+    if (!sub) {
       throw new Error('No subject in token');
     }
 
     // Get user from our database by Clerk ID
-    let user = await getUserByClerkId(payload.sub);
+    let user = await getUserByClerkId(sub);
 
     // Just-in-time provisioning: if Clerk token is valid but no DB row exists
     if (!user) {
       try {
         const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
-        const clerkUser = await clerk.users.getUser(payload.sub);
+        const clerkUser = await clerk.users.getUser(sub);
         const primaryEmail = clerkUser.emailAddresses.find(
           e => e.id === clerkUser.primaryEmailAddressId
         )?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress;

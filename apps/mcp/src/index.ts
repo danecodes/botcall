@@ -95,7 +95,7 @@ const tools = [
       properties: {
         timeout: {
           type: "number",
-          description: "Seconds to wait for a message (default: 120, max: 120)",
+          description: "Seconds to wait for a message (default: 30, max: 30)",
         },
       },
     },
@@ -170,7 +170,7 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
     }
 
     case "get_code": {
-      const timeout = (args.timeout as number) || 120;
+      const timeout = (args.timeout as number) || 30;
       const since = new Date().toISOString();
 
       const result = await apiRequest<{

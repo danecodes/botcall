@@ -45,9 +45,15 @@ export async function authMiddleware(c: Context, next: Next) {
 
   // Try Clerk JWT
   try {
-    const payload = await verifyToken(token, {
+    const result = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
     });
+
+    if (!result.data || result.errors?.length) {
+      throw new Error(result.errors?.[0]?.message || 'Token verification failed');
+    }
+
+    const payload = result.data;
 
     if (!payload.sub) {
       throw new Error('No subject in token');

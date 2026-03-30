@@ -1,0 +1,27 @@
+{
+  "name": "@botcall/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && cp -r public dist/",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@botcall/core": "workspace:*",
+    "@botcall/db": "workspace:*",
+    "@botcall/phone": "workspace:*",
+    "@botcall/sms-providers": "workspace:*",
+    "@clerk/backend": "^3.0.2",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.0",
+    "svix": "^1.87.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

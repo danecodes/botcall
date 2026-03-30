@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install -g pnpm && pnpm install && pnpm turbo build --filter=@botcall/api"
+buildCommand = "pnpm install && pnpm turbo build --filter=@botcall/api"
 
 [deploy]
 startCommand = "node apps/api/dist/index.js"

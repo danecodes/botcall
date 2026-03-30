@@ -21,7 +21,6 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     ::selection { background: var(--accent); color: var(--bg); }
 
     body {
@@ -35,7 +34,6 @@
 
     a { color: inherit; text-decoration: none; }
 
-    /* Nav */
     nav {
       border-bottom: 1px solid var(--border);
       position: fixed;
@@ -53,26 +51,10 @@
       justify-content: space-between;
       align-items: center;
     }
-    .nav-logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-    .nav-email {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--text-dim);
-    }
+    .nav-logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-email { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-dim); }
 
-    /* Buttons */
     .btn {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.85rem;
@@ -88,11 +70,22 @@
       gap: 0.5rem;
     }
     .btn:hover { border-color: var(--border-bright); background: var(--border); }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
     .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
     .btn-sm { font-size: 0.78rem; padding: 0.4rem 0.9rem; }
     .btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
     .btn-ghost:hover { color: var(--text); background: transparent; border-color: var(--border); }
+    .btn-full { width: 100%; justify-content: center; }
+
+    /* Centered layout for auth + pricing */
+    .centered {
+      min-height: 100vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem 2rem;
+    }
 
     /* Loading */
     #loading {
@@ -103,47 +96,42 @@
       flex-direction: column;
       gap: 1rem;
     }
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
+    .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-    }
+    .loading-text { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim); }
 
-    /* Auth section */
-    #auth-section {
-      display: none;
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-      padding: 6rem 2rem 2rem;
+    /* Auth */
+    #auth-section { flex-direction: column; }
+    .auth-header { text-align: center; margin-bottom: 2rem; }
+    .auth-header .logo { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .auth-header p { font-size: 0.9rem; color: var(--text-muted); }
+    #clerk-sign-in { width: 100%; max-width: 420px; }
+
+    /* Pricing */
+    #pricing-section { flex-direction: column; align-items: center; }
+    .pricing-header { text-align: center; margin-bottom: 2.5rem; }
+    .pricing-header .section-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+    .pricing-header h1 { font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .pricing-header p { color: var(--text-muted); font-size: 0.95rem; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; width: 100%; max-width: 600px; }
+    .pricing-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
     }
-    .auth-wrapper {
-      width: 100%;
-      max-width: 420px;
-    }
-    .auth-header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .auth-header .logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    .auth-header p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
+    .pricing-card.featured { border-color: var(--accent); }
+    .pricing-name { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .pricing-price { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .pricing-price span { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+    .pricing-features { list-style: none; margin: 1.5rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .pricing-features li { font-size: 0.9rem; color: var(--text-muted); padding: 0.4rem 0; display: flex; align-items: center; gap: 0.75rem; }
+    .pricing-features li::before { content: "→"; font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 0.8rem; }
+    .pricing-note { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-dim); }
+
+    /* Stripe processing */
+    #processing-section { flex-direction: column; text-align: center; gap: 1rem; }
+    .processing-title { font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: var(--text-muted); }
 
     /* Dashboard */
     #dashboard {
@@ -152,242 +140,46 @@
       margin: 0 auto;
       padding: 7rem 2rem 4rem;
     }
+    .dash-header { margin-bottom: 2.5rem; }
+    .dash-header h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+    .dash-header p { font-size: 0.9rem; color: var(--text-muted); }
 
-    .dash-header {
-      margin-bottom: 2.5rem;
-    }
-    .dash-header h1 {
-      font-size: 1.75rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.25rem;
-    }
-    .dash-header p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
+    .card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .card-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
 
-    /* Cards */
-    .card {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1.25rem;
-    }
-    .card-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
-    }
-    .card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-    }
+    .key-row { display: flex; align-items: center; gap: 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
+    .key-value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); letter-spacing: 0.05em; }
 
-    /* API Key */
-    .key-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.75rem;
-    }
-    .key-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--accent);
-    }
-    .key-value.masked { color: var(--text-dim); letter-spacing: 0.1em; }
-
-    /* New key banner */
-    .new-key-banner {
-      display: none;
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      border-radius: 6px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
+    .new-key-banner { display: none; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
     .new-key-banner.visible { display: block; }
-    .new-key-banner .warning {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-    }
-    .new-key-banner .full-key {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--text);
-      word-break: break-all;
-      margin-bottom: 0.75rem;
-    }
+    .new-key-banner .warning { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); margin-bottom: 0.5rem; }
+    .new-key-banner .full-key { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text); word-break: break-all; margin-bottom: 0.75rem; background: var(--bg); padding: 0.75rem; border-radius: 4px; }
 
-    /* Usage */
-    .usage-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-    }
-    .usage-stat {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 1rem;
-    }
-    .usage-stat-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      margin-bottom: 0.4rem;
-    }
-    .usage-stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-    .usage-stat-max {
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      font-weight: 400;
-    }
-    .plan-badge {
-      display: inline-flex;
-      align-items: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--accent);
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      padding: 0.25rem 0.6rem;
-      border-radius: 4px;
-      gap: 0.4rem;
-      margin-bottom: 1rem;
-    }
-    .plan-badge::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--accent);
-      border-radius: 50%;
-    }
-    .plan-inactive .plan-badge {
-      color: var(--text-dim);
-      background: rgba(113, 113, 122, 0.1);
-      border-color: rgba(113, 113, 122, 0.2);
-    }
-    .plan-inactive .plan-badge::before {
-      background: var(--text-dim);
-    }
+    .usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 0.75rem; }
+    .usage-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; }
+    .usage-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.4rem; }
+    .usage-stat-value { font-size: 1.5rem; font-weight: 600; }
+    .usage-stat-max { font-size: 0.85rem; color: var(--text-dim); font-weight: 400; }
 
-    /* Quick start terminal */
-    .terminal {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .terminal-header {
-      background: var(--bg-elevated);
-      border-bottom: 1px solid var(--border);
-      padding: 0.6rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .terminal-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--border-bright);
-    }
-    .terminal-title {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      margin-left: 0.4rem;
-    }
-    .terminal-body {
-      padding: 1.25rem 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      line-height: 2;
-    }
+    .plan-badge { display: inline-flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); padding: 0.25rem 0.6rem; border-radius: 4px; gap: 0.4rem; margin-bottom: 1rem; }
+    .plan-badge::before { content: ""; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+
+    .terminal { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .terminal-header { background: var(--bg-elevated); border-bottom: 1px solid var(--border); padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.4rem; }
+    .terminal-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-bright); }
+    .terminal-title { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); margin-left: 0.4rem; }
+    .terminal-body { padding: 1.25rem 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 2; }
     .terminal-line { display: flex; gap: 0.75rem; }
     .terminal-prompt { color: var(--accent); user-select: none; }
-    .terminal-command { color: var(--text); }
     .terminal-output { color: var(--text-dim); padding-left: 1.5rem; }
-    .terminal-highlight {
-      color: var(--text);
-      background: rgba(34, 197, 94, 0.1);
-      padding: 0.1rem 0.3rem;
-      border-radius: 3px;
-    }
+    .terminal-highlight { color: var(--text); background: rgba(34, 197, 94, 0.1); padding: 0.1rem 0.3rem; border-radius: 3px; }
 
-    /* Upgrade banner */
-    .upgrade-banner {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .upgrade-banner h3 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-    .upgrade-banner p {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem;
-      margin-top: 2rem;
-    }
-    .footer-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .footer-logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
+    footer { border-top: 1px solid var(--border); padding: 2rem; margin-top: 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-muted); }
     .footer-links { display: flex; gap: 2rem; }
-    .footer-links a {
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      transition: color 0.15s;
-    }
+    .footer-links a { font-size: 0.85rem; color: var(--text-dim); transition: color 0.15s; }
     .footer-links a:hover { color: var(--text); }
-
-    @media (max-width: 600px) {
-      #dashboard { padding-top: 5rem; }
-    }
   </style>
 </head>
 <body>
@@ -405,44 +197,72 @@
   <!-- Loading -->
   <div id="loading">
     <div class="spinner"></div>
-    <span class="loading-text">loading...</span>
+    <span class="loading-text" id="loading-text">loading...</span>
   </div>
 
-  <!-- Auth -->
-  <div id="auth-section">
-    <div class="auth-wrapper">
-      <div class="auth-header">
-        <div class="logo">☎ botcall</div>
-        <p>Sign in to access your API key and dashboard</p>
-      </div>
-      <div id="clerk-sign-in"></div>
+  <!-- Step 1: Not signed in → Clerk auth -->
+  <div class="centered" id="auth-section">
+    <div class="auth-header">
+      <div class="logo">☎ botcall</div>
+      <p>Sign up to get started</p>
     </div>
+    <div id="clerk-sign-in"></div>
   </div>
 
-  <!-- Dashboard -->
+  <!-- Step 2: Signed in, no subscription → pick a plan -->
+  <div class="centered" id="pricing-section">
+    <div class="pricing-header">
+      <div class="section-label">// choose a plan</div>
+      <h1>Get your phone number</h1>
+      <p>Cancel anytime. No contracts.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card featured">
+        <div class="pricing-name">starter</div>
+        <div class="pricing-price">$9 <span>/mo</span></div>
+        <ul class="pricing-features">
+          <li>1 phone number</li>
+          <li>100 SMS/month</li>
+          <li>Verification code extraction</li>
+          <li>CLI + MCP access</li>
+        </ul>
+        <button class="btn btn-primary btn-full" onclick="subscribe('starter')" id="btn-starter">Subscribe →</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-name">pro</div>
+        <div class="pricing-price">$29 <span>/mo</span></div>
+        <ul class="pricing-features">
+          <li>5 phone numbers</li>
+          <li>500 SMS/month</li>
+          <li>Verification code extraction</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-full" onclick="subscribe('pro')" id="btn-pro">Subscribe →</button>
+      </div>
+    </div>
+    <p class="pricing-note">Redirecting to Stripe for secure payment</p>
+  </div>
+
+  <!-- Step 2b: Returning from Stripe, waiting for webhook -->
+  <div class="centered" id="processing-section">
+    <div class="spinner"></div>
+    <div class="processing-title">Activating your account...</div>
+    <div class="loading-text">This takes a few seconds</div>
+  </div>
+
+  <!-- Step 3: Active subscription → dashboard -->
   <div id="dashboard">
     <div class="dash-header">
       <h1>Dashboard</h1>
       <p id="dash-subtitle">Your API key and usage</p>
     </div>
 
-    <!-- New key banner (shown once after generation) -->
     <div class="new-key-banner" id="new-key-banner">
       <div class="warning">⚠ Save this key — it won't be shown again</div>
       <div class="full-key" id="new-key-value"></div>
       <button class="btn btn-sm" onclick="copyNewKey()">copy key</button>
     </div>
 
-    <!-- Upgrade banner (shown if inactive plan) -->
-    <div class="upgrade-banner" id="upgrade-banner" style="display:none">
-      <div>
-        <h3>No active subscription</h3>
-        <p>Subscribe to provision a phone number and start receiving SMS.</p>
-      </div>
-      <button class="btn btn-primary" onclick="openCheckout('starter')">Subscribe $9/mo →</button>
-    </div>
-
-    <!-- API Key card -->
     <div class="card">
       <div class="card-label">// api key</div>
       <div id="keys-list"></div>
@@ -452,14 +272,12 @@
       </div>
     </div>
 
-    <!-- Usage card -->
-    <div class="card" id="usage-card">
+    <div class="card">
       <div class="card-label">// plan & usage</div>
       <div id="plan-info"></div>
       <div class="usage-grid" id="usage-grid"></div>
     </div>
 
-    <!-- Quick start -->
     <div class="card">
       <div class="card-label">// quick start</div>
       <div class="terminal">
@@ -469,7 +287,7 @@
           <div class="terminal-dot"></div>
           <span class="terminal-title">terminal</span>
         </div>
-        <div class="terminal-body" id="quickstart-terminal">
+        <div class="terminal-body">
           <div class="terminal-line">
             <span class="terminal-prompt">$</span>
             <span class="terminal-command">npm install -g botcall</span>
@@ -508,7 +326,17 @@
     const API_URL = 'https://botcall-production-f65b.up.railway.app';
 
     let clerk = null;
-    let currentKeyPrefix = null;
+
+    function show(id) {
+      ['loading', 'auth-section', 'pricing-section', 'processing-section', 'dashboard'].forEach(s => {
+        const el = document.getElementById(s);
+        if (s === id) {
+          el.style.display = s === 'dashboard' ? 'block' : 'flex';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
 
     const clerkAppearance = {
       variables: {
@@ -532,7 +360,6 @@
         dividerLine: { backgroundColor: '#27272a' },
         dividerText: { color: '#71717a' },
         socialButtonsBlockButton: { borderColor: '#27272a', backgroundColor: '#09090b', color: '#fafafa' },
-        identityPreviewText: { color: '#fafafa' },
         headerTitle: { color: '#fafafa' },
         headerSubtitle: { color: '#a1a1aa' },
       },
@@ -551,39 +378,72 @@
       return res.json();
     }
 
-    async function loadDashboard() {
+    async function checkAndRoute() {
       const user = clerk.user;
+      if (!user) { showAuth(); return; }
+
       document.getElementById('nav-email').textContent = user.primaryEmailAddress?.emailAddress || '';
       document.getElementById('sign-out-btn').style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
 
-      const [keysRes, usageRes] = await Promise.all([
-        apiRequest('/v1/users/me/api-keys'),
-        apiRequest('/v1/billing/usage'),
-      ]);
+      // Check if returning from Stripe
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('success') === 'true') {
+        // Clean URL
+        history.replaceState({}, '', '/dashboard');
+        // Poll until subscription activates (webhook may take a moment)
+        show('processing-section');
+        await pollForSubscription();
+        return;
+      }
 
+      const usageRes = await apiRequest('/v1/billing/usage');
+      const plan = usageRes.data?.plan;
+
+      if (!plan || plan === 'inactive') {
+        show('pricing-section');
+      } else {
+        await loadDashboard(usageRes.data);
+      }
+    }
+
+    async function pollForSubscription(attempts = 0) {
+      if (attempts > 20) {
+        // Give up and show pricing again
+        show('pricing-section');
+        return;
+      }
+      const usageRes = await apiRequest('/v1/billing/usage');
+      const plan = usageRes.data?.plan;
+      if (plan && plan !== 'inactive') {
+        await loadDashboard(usageRes.data);
+      } else {
+        await new Promise(r => setTimeout(r, 1500));
+        await pollForSubscription(attempts + 1);
+      }
+    }
+
+    async function loadDashboard(usageData) {
+      show('dashboard');
+
+      const keysRes = await apiRequest('/v1/users/me/api-keys');
       renderKeys(keysRes.data || []);
-      renderUsage(usageRes.data);
+      renderUsage(usageData);
     }
 
     function renderKeys(keys) {
       const list = document.getElementById('keys-list');
       if (keys.length === 0) {
-        list.innerHTML = '<p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem;">No API keys yet. Create one below.</p>';
+        list.innerHTML = '<p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem;">No API keys yet.</p>';
         return;
       }
       list.innerHTML = keys.map(k => `
         <div class="key-row">
-          <span class="key-value masked">${k.prefix}••••••••••••••••••••••••</span>
+          <span class="key-value">${k.prefix}••••••••••••••••••••</span>
           <span style="font-family:monospace;font-size:0.75rem;color:var(--text-dim)">${k.name}</span>
-          <button class="btn btn-sm btn-ghost" onclick="copyText('${k.prefix}', this)">copy prefix</button>
         </div>
       `).join('');
 
-      // Update quick start with first key prefix
       if (keys[0]) {
-        currentKeyPrefix = keys[0].prefix;
         document.getElementById('qs-key').textContent = keys[0].prefix + '...';
       }
     }
@@ -591,28 +451,35 @@
     function renderUsage(data) {
       if (!data) return;
       const { plan, limits, usage } = data;
-      const isInactive = plan === 'inactive';
 
-      document.getElementById('plan-info').innerHTML = `
-        <div class="plan-badge ${isInactive ? 'plan-inactive' : ''}" style="margin-bottom:1rem;">
-          ${isInactive ? 'no plan' : plan}
-        </div>
-      `;
-
-      if (isInactive) {
-        document.getElementById('upgrade-banner').style.display = 'flex';
-      }
-
+      document.getElementById('plan-info').innerHTML = `<div class="plan-badge">${plan}</div>`;
       document.getElementById('usage-grid').innerHTML = `
         <div class="usage-stat">
           <div class="usage-stat-label">phone numbers</div>
-          <div class="usage-stat-value">${usage.phoneNumbers}<span class="usage-stat-max"> / ${limits.phoneNumbers || '—'}</span></div>
+          <div class="usage-stat-value">${usage.phoneNumbers}<span class="usage-stat-max"> / ${limits.phoneNumbers}</span></div>
         </div>
         <div class="usage-stat">
           <div class="usage-stat-label">sms this month</div>
-          <div class="usage-stat-value">${usage.smsThisMonth}<span class="usage-stat-max"> / ${limits.smsPerMonth || '—'}</span></div>
+          <div class="usage-stat-value">${usage.smsThisMonth}<span class="usage-stat-max"> / ${limits.smsPerMonth}</span></div>
         </div>
       `;
+    }
+
+    async function subscribe(plan) {
+      const btn = document.getElementById(`btn-${plan}`);
+      btn.disabled = true;
+      btn.textContent = 'Redirecting...';
+      const res = await apiRequest('/v1/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan, returnUrl: window.location.origin + '/dashboard' }),
+      });
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Subscribe →';
+        alert(res.error?.message || 'Something went wrong');
+      }
     }
 
     async function createKey() {
@@ -625,29 +492,16 @@
         document.getElementById('new-key-value').textContent = res.data.key;
         document.getElementById('new-key-banner').classList.add('visible');
         document.getElementById('qs-key').textContent = res.data.key;
-        // Refresh key list
         const keysRes = await apiRequest('/v1/users/me/api-keys');
         renderKeys(keysRes.data || []);
       }
     }
 
     function copyNewKey() {
-      const key = document.getElementById('new-key-value').textContent;
-      copyText(key);
-    }
-
-    function copyText(text, btn) {
-      navigator.clipboard.writeText(text).then(() => {
-        if (btn) { const orig = btn.textContent; btn.textContent = 'copied!'; setTimeout(() => btn.textContent = orig, 1500); }
-      });
-    }
-
-    async function openCheckout(plan) {
-      const res = await apiRequest('/v1/billing/checkout', {
-        method: 'POST',
-        body: JSON.stringify({ plan, returnUrl: window.location.href }),
-      });
-      if (res.data?.url) window.location.href = res.data.url;
+      navigator.clipboard.writeText(document.getElementById('new-key-value').textContent);
+      const btn = event.target;
+      btn.textContent = 'copied!';
+      setTimeout(() => btn.textContent = 'copy key', 1500);
     }
 
     async function openBillingPortal() {
@@ -658,47 +512,34 @@
       if (res.data?.url) window.location.href = res.data.url;
     }
 
+    function showAuth() {
+      show('auth-section');
+      clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
+        appearance: clerkAppearance,
+        afterSignInUrl: window.location.href,
+        afterSignUpUrl: window.location.href,
+      });
+      clerk.addListener(({ user }) => {
+        if (user) checkAndRoute();
+      });
+    }
+
     async function signOut() {
       await clerk.signOut();
       window.location.reload();
     }
 
-    // Boot Clerk
     async function initClerk() {
       const script = document.createElement('script');
       script.src = `https://teaching-hamster-91.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
       script.setAttribute('data-clerk-publishable-key', CLERK_PK);
       script.crossOrigin = 'anonymous';
       script.async = true;
-
       script.onload = async () => {
         clerk = window.Clerk;
         await clerk.load();
-
-        if (clerk.user) {
-          await loadDashboard();
-        } else {
-          document.getElementById('loading').style.display = 'none';
-          const authSection = document.getElementById('auth-section');
-          authSection.style.display = 'flex';
-
-          clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
-            appearance: clerkAppearance,
-            signUpUrl: window.location.href,
-            afterSignInUrl: window.location.href,
-            afterSignUpUrl: window.location.href,
-          });
-
-          clerk.addListener(({ user }) => {
-            if (user) {
-              authSection.style.display = 'none';
-              document.getElementById('loading').style.display = 'flex';
-              loadDashboard();
-            }
-          });
-        }
+        await checkAndRoute();
       };
-
       document.head.appendChild(script);
     }
 

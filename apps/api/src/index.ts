@@ -37,6 +37,18 @@ app.get('/', (c) => {
   }
 });
 
+// Dashboard
+app.get('/dashboard', (c) => {
+  try {
+    const htmlPath = join(__dirname, 'public', 'dashboard.html');
+    const html = readFileSync(htmlPath, 'utf-8');
+    return c.html(html);
+  } catch (e) {
+    console.error('Dashboard error:', e);
+    return c.redirect('/');
+  }
+});
+
 // Install script
 app.get('/install.sh', (c) => {
   try {

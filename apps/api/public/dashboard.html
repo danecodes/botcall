@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — botcall</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☎</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --bg-elevated: #18181b;
+      --border: #27272a;
+      --border-bright: #3f3f46;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #22c55e;
+      --accent-dim: #16a34a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    ::selection { background: var(--accent); color: var(--bg); }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Nav */
+    nav {
+      border-bottom: 1px solid var(--border);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .nav-email {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn:hover { border-color: var(--border-bright); background: var(--border); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+    .btn-sm { font-size: 0.78rem; padding: 0.4rem 0.9rem; }
+    .btn-ghost { background: transparent; border-color: transparent; color: var(--text-dim); }
+    .btn-ghost:hover { color: var(--text); background: transparent; border-color: var(--border); }
+
+    /* Loading */
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    /* Auth section */
+    #auth-section {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem 2rem;
+    }
+    .auth-wrapper {
+      width: 100%;
+      max-width: 420px;
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .auth-header .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .auth-header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard */
+    #dashboard {
+      display: none;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 7rem 2rem 4rem;
+    }
+
+    .dash-header {
+      margin-bottom: 2.5rem;
+    }
+    .dash-header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .dash-header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    /* API Key */
+    .key-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .key-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--accent);
+    }
+    .key-value.masked { color: var(--text-dim); letter-spacing: 0.1em; }
+
+    /* New key banner */
+    .new-key-banner {
+      display: none;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .new-key-banner.visible { display: block; }
+    .new-key-banner .warning {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .new-key-banner .full-key {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      word-break: break-all;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Usage */
+    .usage-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+    .usage-stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .usage-stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+    }
+    .usage-stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .usage-stat-max {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+    .plan-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .plan-inactive .plan-badge {
+      color: var(--text-dim);
+      background: rgba(113, 113, 122, 0.1);
+      border-color: rgba(113, 113, 122, 0.2);
+    }
+    .plan-inactive .plan-badge::before {
+      background: var(--text-dim);
+    }
+
+    /* Quick start terminal */
+    .terminal {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .terminal-header {
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border-bright);
+    }
+    .terminal-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-left: 0.4rem;
+    }
+    .terminal-body {
+      padding: 1.25rem 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 2;
+    }
+    .terminal-line { display: flex; gap: 0.75rem; }
+    .terminal-prompt { color: var(--accent); user-select: none; }
+    .terminal-command { color: var(--text); }
+    .terminal-output { color: var(--text-dim); padding-left: 1.5rem; }
+    .terminal-highlight {
+      color: var(--text);
+      background: rgba(34, 197, 94, 0.1);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    /* Upgrade banner */
+    .upgrade-banner {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .upgrade-banner h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .upgrade-banner p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      margin-top: 2rem;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .footer-links { display: flex; gap: 2rem; }
+    .footer-links a {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      #dashboard { padding-top: 5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">☎ botcall</a>
+      <div class="nav-right">
+        <span class="nav-email" id="nav-email"></span>
+        <button class="btn btn-sm btn-ghost" id="sign-out-btn" style="display:none" onclick="signOut()">sign out</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <span class="loading-text">loading...</span>
+  </div>
+
+  <!-- Auth -->
+  <div id="auth-section">
+    <div class="auth-wrapper">
+      <div class="auth-header">
+        <div class="logo">☎ botcall</div>
+        <p>Sign in to access your API key and dashboard</p>
+      </div>
+      <div id="clerk-sign-in"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="dash-header">
+      <h1>Dashboard</h1>
+      <p id="dash-subtitle">Your API key and usage</p>
+    </div>
+
+    <!-- New key banner (shown once after generation) -->
+    <div class="new-key-banner" id="new-key-banner">
+      <div class="warning">⚠ Save this key — it won't be shown again</div>
+      <div class="full-key" id="new-key-value"></div>
+      <button class="btn btn-sm" onclick="copyNewKey()">copy key</button>
+    </div>
+
+    <!-- Upgrade banner (shown if inactive plan) -->
+    <div class="upgrade-banner" id="upgrade-banner" style="display:none">
+      <div>
+        <h3>No active subscription</h3>
+        <p>Subscribe to provision a phone number and start receiving SMS.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openCheckout('starter')">Subscribe $9/mo →</button>
+    </div>
+
+    <!-- API Key card -->
+    <div class="card">
+      <div class="card-label">// api key</div>
+      <div id="keys-list"></div>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
+        <button class="btn btn-sm" onclick="createKey()">+ new key</button>
+        <button class="btn btn-sm btn-ghost" onclick="openBillingPortal()">manage billing</button>
+      </div>
+    </div>
+
+    <!-- Usage card -->
+    <div class="card" id="usage-card">
+      <div class="card-label">// plan & usage</div>
+      <div id="plan-info"></div>
+      <div class="usage-grid" id="usage-grid"></div>
+    </div>
+
+    <!-- Quick start -->
+    <div class="card">
+      <div class="card-label">// quick start</div>
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dot"></div>
+          <div class="terminal-dot"></div>
+          <div class="terminal-dot"></div>
+          <span class="terminal-title">terminal</span>
+        </div>
+        <div class="terminal-body" id="quickstart-terminal">
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">npm install -g botcall</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">botcall auth login --api-key <span id="qs-key" style="color:var(--accent)">YOUR_KEY</span></span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">botcall provision</span>
+          </div>
+          <div class="terminal-output">✓ Provisioned: <span class="terminal-highlight">+12065551234</span></div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">botcall get-code</span>
+          </div>
+          <div class="terminal-output"><span class="terminal-highlight">847291</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo">☎ botcall</div>
+      <div class="footer-links">
+        <a href="mailto:hello@botcall.io">Contact</a>
+        <span style="color: var(--text-dim);">© 2026</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const CLERK_PK = 'pk_test_dGVhY2hpbmctaGFtc3Rlci05MS5jbGVyay5hY2NvdW50cy5kZXYk';
+    const API_URL = 'https://botcall-production-f65b.up.railway.app';
+
+    let clerk = null;
+    let currentKeyPrefix = null;
+
+    const clerkAppearance = {
+      variables: {
+        colorBackground: '#18181b',
+        colorInputBackground: '#09090b',
+        colorInputText: '#fafafa',
+        colorText: '#fafafa',
+        colorTextSecondary: '#a1a1aa',
+        colorPrimary: '#22c55e',
+        colorDanger: '#ef4444',
+        colorNeutral: '#3f3f46',
+        borderRadius: '6px',
+        fontFamily: "'JetBrains Mono', 'Inter', monospace",
+        fontSize: '14px',
+      },
+      elements: {
+        card: { backgroundColor: '#18181b', border: '1px solid #27272a', boxShadow: 'none', borderRadius: '8px' },
+        formButtonPrimary: { backgroundColor: '#22c55e', color: '#09090b', fontFamily: "'JetBrains Mono', monospace" },
+        footerActionLink: { color: '#22c55e' },
+        formFieldInput: { backgroundColor: '#09090b', borderColor: '#27272a', color: '#fafafa' },
+        dividerLine: { backgroundColor: '#27272a' },
+        dividerText: { color: '#71717a' },
+        socialButtonsBlockButton: { borderColor: '#27272a', backgroundColor: '#09090b', color: '#fafafa' },
+        identityPreviewText: { color: '#fafafa' },
+        headerTitle: { color: '#fafafa' },
+        headerSubtitle: { color: '#a1a1aa' },
+      },
+    };
+
+    async function apiRequest(path, options = {}) {
+      const token = await clerk.session.getToken();
+      const res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+      return res.json();
+    }
+
+    async function loadDashboard() {
+      const user = clerk.user;
+      document.getElementById('nav-email').textContent = user.primaryEmailAddress?.emailAddress || '';
+      document.getElementById('sign-out-btn').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      const [keysRes, usageRes] = await Promise.all([
+        apiRequest('/v1/users/me/api-keys'),
+        apiRequest('/v1/billing/usage'),
+      ]);
+
+      renderKeys(keysRes.data || []);
+      renderUsage(usageRes.data);
+    }
+
+    function renderKeys(keys) {
+      const list = document.getElementById('keys-list');
+      if (keys.length === 0) {
+        list.innerHTML = '<p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem;">No API keys yet. Create one below.</p>';
+        return;
+      }
+      list.innerHTML = keys.map(k => `
+        <div class="key-row">
+          <span class="key-value masked">${k.prefix}••••••••••••••••••••••••</span>
+          <span style="font-family:monospace;font-size:0.75rem;color:var(--text-dim)">${k.name}</span>
+          <button class="btn btn-sm btn-ghost" onclick="copyText('${k.prefix}', this)">copy prefix</button>
+        </div>
+      `).join('');
+
+      // Update quick start with first key prefix
+      if (keys[0]) {
+        currentKeyPrefix = keys[0].prefix;
+        document.getElementById('qs-key').textContent = keys[0].prefix + '...';
+      }
+    }
+
+    function renderUsage(data) {
+      if (!data) return;
+      const { plan, limits, usage } = data;
+      const isInactive = plan === 'inactive';
+
+      document.getElementById('plan-info').innerHTML = `
+        <div class="plan-badge ${isInactive ? 'plan-inactive' : ''}" style="margin-bottom:1rem;">
+          ${isInactive ? 'no plan' : plan}
+        </div>
+      `;
+
+      if (isInactive) {
+        document.getElementById('upgrade-banner').style.display = 'flex';
+      }
+
+      document.getElementById('usage-grid').innerHTML = `
+        <div class="usage-stat">
+          <div class="usage-stat-label">phone numbers</div>
+          <div class="usage-stat-value">${usage.phoneNumbers}<span class="usage-stat-max"> / ${limits.phoneNumbers || '—'}</span></div>
+        </div>
+        <div class="usage-stat">
+          <div class="usage-stat-label">sms this month</div>
+          <div class="usage-stat-value">${usage.smsThisMonth}<span class="usage-stat-max"> / ${limits.smsPerMonth || '—'}</span></div>
+        </div>
+      `;
+    }
+
+    async function createKey() {
+      const name = prompt('Key name (optional):') || 'Default';
+      const res = await apiRequest('/v1/users/me/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
+      if (res.data?.key) {
+        document.getElementById('new-key-value').textContent = res.data.key;
+        document.getElementById('new-key-banner').classList.add('visible');
+        document.getElementById('qs-key').textContent = res.data.key;
+        // Refresh key list
+        const keysRes = await apiRequest('/v1/users/me/api-keys');
+        renderKeys(keysRes.data || []);
+      }
+    }
+
+    function copyNewKey() {
+      const key = document.getElementById('new-key-value').textContent;
+      copyText(key);
+    }
+
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (btn) { const orig = btn.textContent; btn.textContent = 'copied!'; setTimeout(() => btn.textContent = orig, 1500); }
+      });
+    }
+
+    async function openCheckout(plan) {
+      const res = await apiRequest('/v1/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan, returnUrl: window.location.href }),
+      });
+      if (res.data?.url) window.location.href = res.data.url;
+    }
+
+    async function openBillingPortal() {
+      const res = await apiRequest('/v1/billing/portal', {
+        method: 'POST',
+        body: JSON.stringify({ returnUrl: window.location.href }),
+      });
+      if (res.data?.url) window.location.href = res.data.url;
+    }
+
+    async function signOut() {
+      await clerk.signOut();
+      window.location.reload();
+    }
+
+    // Boot Clerk
+    async function initClerk() {
+      const script = document.createElement('script');
+      script.src = `https://teaching-hamster-91.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
+      script.setAttribute('data-clerk-publishable-key', CLERK_PK);
+      script.crossOrigin = 'anonymous';
+      script.async = true;
+
+      script.onload = async () => {
+        clerk = window.Clerk;
+        await clerk.load();
+
+        if (clerk.user) {
+          await loadDashboard();
+        } else {
+          document.getElementById('loading').style.display = 'none';
+          const authSection = document.getElementById('auth-section');
+          authSection.style.display = 'flex';
+
+          clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
+            appearance: clerkAppearance,
+            signUpUrl: window.location.href,
+            afterSignInUrl: window.location.href,
+            afterSignUpUrl: window.location.href,
+          });
+
+          clerk.addListener(({ user }) => {
+            if (user) {
+              authSection.style.display = 'none';
+              document.getElementById('loading').style.display = 'flex';
+              loadDashboard();
+            }
+          });
+        }
+      };
+
+      document.head.appendChild(script);
+    }
+
+    initClerk();
+  </script>
+</body>
+</html>

@@ -83,13 +83,15 @@ export async function provisionNumber(userId: string, options: {
  */
 export async function listNumbers(userId: string) {
   const db = getDb();
+  const sms = getSmsProvider();
 
   return db
     .select()
     .from(phoneNumbers)
     .where(and(
       eq(phoneNumbers.userId, userId),
-      eq(phoneNumbers.status, 'active')
+      eq(phoneNumbers.status, 'active'),
+      eq(phoneNumbers.provider, sms.name)
     ));
 }
 

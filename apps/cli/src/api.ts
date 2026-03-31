@@ -2,7 +2,7 @@
  * Botservices API client
  */
 
-const DEFAULT_API_URL = 'https://botcall-api-production.up.railway.app';
+const DEFAULT_API_URL = 'https://botcall-production-f65b.up.railway.app';
 
 interface ApiConfig {
   apiKey: string;

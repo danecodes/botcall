@@ -59,7 +59,7 @@ program
           if (isApiMode()) {
             console.log(chalk.green('✓ Authenticated (API mode)'));
             console.log(`  Key: ${cfg.apiKey?.slice(0, 12)}...`);
-            console.log(`  URL: ${cfg.apiUrl || 'https://botcall-api-production.up.railway.app'}`);
+            console.log(`  URL: ${cfg.apiUrl || 'https://botcall-production-f65b.up.railway.app'}`);
           } else {
             console.log(chalk.green('✓ Authenticated (legacy Signalwire mode)'));
             console.log(`  Space: ${cfg.spaceUrl}`);
@@ -211,14 +211,14 @@ program
 program
   .command('get-code')
   .description('Wait for SMS and extract verification code')
-  .option('-t, --timeout <seconds>', 'Timeout in seconds (default: 120)', '120')
+  .option('-t, --timeout <seconds>', 'Timeout in seconds (default: 30, max: 30)', '30')
   .action(async (options: { timeout?: string }) => {
     if (!isConfigured()) {
       console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
       process.exit(1);
     }
 
-    const timeout = parseInt(options.timeout || '120', 10);
+    const timeout = Math.min(parseInt(options.timeout || '30', 10), 30);
     const spinner = ora('Waiting for verification code...').start();
     
     try {

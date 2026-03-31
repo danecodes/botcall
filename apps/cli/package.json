@@ -1,6 +1,6 @@
 {
   "name": "botcall",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Phone numbers for AI agents. Dead simple.",
   "type": "module",
   "main": "dist/index.js",

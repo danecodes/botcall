@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>botcall docs - CLI reference</title>
+  <meta name="description" content="Full botcall CLI reference. Every command, every flag, every option.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☎</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --bg-elevated: #18181b;
+      --border: #27272a;
+      --border-bright: #3f3f46;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #22c55e;
+      --accent-dim: #16a34a;
+      --sidebar-width: 220px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    ::selection { background: var(--accent); color: var(--bg); }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Nav */
+    nav {
+      border-bottom: 1px solid var(--border);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      background: rgba(9, 9, 11, 0.9);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .nav-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover, .nav-links a.active { color: var(--text); }
+    .nav-links a.active { color: var(--accent); }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { border-color: var(--border-bright); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+
+    /* Layout */
+    .docs-layout {
+      display: flex;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding-top: 4rem;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      position: sticky;
+      top: 4rem;
+      height: calc(100vh - 4rem);
+      overflow-y: auto;
+      padding: 2rem 1.5rem 2rem 2rem;
+      border-right: 1px solid var(--border);
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-section {
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar-links { list-style: none; }
+
+    .sidebar-links li a {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: block;
+      padding: 0.3rem 0;
+      transition: color 0.15s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sidebar-links li a:hover { color: var(--text); }
+    .sidebar-links li a.active { color: var(--accent); }
+
+    /* Main content */
+    .docs-content {
+      flex: 1;
+      padding: 3rem 3rem 6rem;
+      max-width: 860px;
+      min-width: 0;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 4rem;
+      margin-bottom: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      scroll-margin-top: 6rem;
+    }
+
+    h2:first-of-type { margin-top: 2.5rem; border-top: none; padding-top: 0; }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      scroll-margin-top: 6rem;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .lead {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.15em 0.4em;
+      color: var(--text);
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .comment { color: var(--text-dim); }
+    .cmd { color: var(--text); }
+    .output { color: var(--text-dim); }
+    .hl { color: var(--accent); }
+    .flag { color: #60a5fa; }
+    .val { color: #f59e0b; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    th {
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+
+    td:first-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    /* Note boxes */
+    .note {
+      background: rgba(34, 197, 94, 0.05);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin: 1rem 0 1.5rem;
+    }
+
+    .note strong { color: var(--accent); }
+
+    .warn {
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin: 1rem 0 1.5rem;
+    }
+
+    .warn strong { color: #f59e0b; }
+
+    /* Exit codes */
+    .exit-codes { list-style: none; margin: 0.5rem 0 1.5rem; }
+    .exit-codes li {
+      display: flex;
+      gap: 1rem;
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .exit-codes li:last-child { border-bottom: none; }
+    .exit-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      min-width: 2rem;
+    }
+    .exit-desc { color: var(--text-muted); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .docs-content { padding: 2rem 1.25rem 4rem; }
+    }
+
+    @media (max-width: 600px) {
+      .nav-links a:not(.btn) { display: none; }
+      h1 { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><span>☎</span> botcall</a>
+      <div class="nav-links">
+        <a href="/#features">Features</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/docs" class="active">Docs</a>
+        <a href="/dashboard" class="btn btn-primary">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Getting started</div>
+        <ul class="sidebar-links">
+          <li><a href="#install">Installation</a></li>
+          <li><a href="#auth-setup">Authentication</a></li>
+          <li><a href="#quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Commands</div>
+        <ul class="sidebar-links">
+          <li><a href="#cmd-auth">auth</a></li>
+          <li><a href="#cmd-provision">provision</a></li>
+          <li><a href="#cmd-list">list</a></li>
+          <li><a href="#cmd-inbox">inbox</a></li>
+          <li><a href="#cmd-get-code">get-code</a></li>
+          <li><a href="#cmd-release">release</a></li>
+          <li><a href="#cmd-usage">usage</a></li>
+          <li><a href="#cmd-billing">billing</a></li>
+          <li><a href="#cmd-upgrade">upgrade</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Integrations</div>
+        <ul class="sidebar-links">
+          <li><a href="#mcp">MCP server</a></li>
+          <li><a href="#scripting">Scripting</a></li>
+          <li><a href="#env-vars">Env vars</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="docs-content">
+      <h1>CLI Reference</h1>
+      <p class="lead">Complete documentation for the <code>botcall</code> CLI. Every command, every flag, every exit code.</p>
+
+      <!-- ======== INSTALL ======== -->
+      <h2 id="install">Installation</h2>
+
+      <p>Requires Node.js 18 or later.</p>
+
+      <pre><code><span class="cmd">npm install -g botcall</span></code></pre>
+
+      <p>Verify the install:</p>
+
+      <pre><code><span class="cmd">botcall --version</span>
+<span class="output">0.1.1</span></code></pre>
+
+      <!-- ======== AUTH SETUP ======== -->
+      <h2 id="auth-setup">Authentication</h2>
+
+      <p>Get an API key from the <a href="/dashboard" style="color:var(--accent)">dashboard</a> after subscribing. Keys start with <code>bs_live_</code>.</p>
+
+      <pre><code><span class="cmd">botcall auth login --api-key bs_live_xxxxx</span>
+<span class="output">✓ API key saved
+✓ Connected! You have 0 phone number(s)</span></code></pre>
+
+      <p>Your key is stored in <code>~/.config/botcall/config.json</code> (macOS/Linux) or <code>%APPDATA%\botcall\config.json</code> (Windows). You only need to log in once per machine.</p>
+
+      <p>Alternatively, set an environment variable — this takes precedence over the saved key:</p>
+
+      <pre><code><span class="cmd">export BOTCALL_API_KEY=bs_live_xxxxx</span></code></pre>
+
+      <!-- ======== QUICKSTART ======== -->
+      <h2 id="quickstart">Quickstart</h2>
+
+      <pre><code><span class="comment"># 1. Authenticate</span>
+<span class="cmd">botcall auth login --api-key bs_live_xxxxx</span>
+
+<span class="comment"># 2. Get a phone number</span>
+<span class="cmd">botcall provision</span>
+<span class="output">✓ Provisioned: +12065551234</span>
+
+<span class="comment"># 3. Trigger SMS on the target service, then:</span>
+<span class="cmd">botcall get-code</span>
+<span class="output">847291</span>
+
+<span class="comment"># 4. Use in a script</span>
+<span class="cmd">CODE=$(botcall get-code)
+echo "Got code: $CODE"</span></code></pre>
+
+      <!-- ======== AUTH ======== -->
+      <h2 id="cmd-auth">botcall auth</h2>
+      <p>Manage authentication. Three sub-actions: <code>login</code>, <code>status</code>, <code>logout</code>.</p>
+
+      <h3>auth login</h3>
+
+      <pre><code><span class="cmd">botcall auth login</span> <span class="flag">--api-key</span> <span class="val">&lt;key&gt;</span> [<span class="flag">--api-url</span> <span class="val">&lt;url&gt;</span>]</code></pre>
+
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Required</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>--api-key &lt;key&gt;</td>
+            <td>Yes</td>
+            <td>Your botcall API key. Must start with <code>bs_live_</code>. Get one from the dashboard.</td>
+          </tr>
+          <tr>
+            <td>--api-url &lt;url&gt;</td>
+            <td>No</td>
+            <td>Override the API base URL. Only needed for self-hosted deployments. Default: <code>https://api.botcall.io</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Saves the key and immediately tests the connection. Exits non-zero if the key is invalid.</p>
+
+      <h3>auth status</h3>
+
+      <pre><code><span class="cmd">botcall auth status</span>
+<span class="output">✓ Authenticated (API mode)
+  Key: bs_live_zU5B...
+  URL: https://api.botcall.io</span></code></pre>
+
+      <p>Shows the current auth state. Prints the first 12 characters of the key, never the full value.</p>
+
+      <h3>auth logout</h3>
+
+      <pre><code><span class="cmd">botcall auth logout</span>
+<span class="output">✓ Logged out</span></code></pre>
+
+      <p>Clears the saved key from disk. The <code>BOTCALL_API_KEY</code> environment variable is not affected.</p>
+
+      <!-- ======== PROVISION ======== -->
+      <h2 id="cmd-provision">botcall provision</h2>
+
+      <pre><code><span class="cmd">botcall provision</span> [<span class="flag">--area-code</span> <span class="val">&lt;code&gt;</span>] [<span class="flag">--country</span> <span class="val">&lt;code&gt;</span>]</code></pre>
+
+      <p>Provisions a new phone number on your account. Numbers are billed monthly — release when done.</p>
+
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Short</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>--area-code &lt;code&gt;</td>
+            <td>-a</td>
+            <td>any</td>
+            <td>Request a number in a specific 3-digit area code. US only. Example: <code>206</code> (Seattle), <code>415</code> (San Francisco), <code>212</code> (New York).</td>
+          </tr>
+          <tr>
+            <td>--country &lt;code&gt;</td>
+            <td>-c</td>
+            <td>US</td>
+            <td>ISO 3166-1 alpha-2 country code. Currently supported: <code>US</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>On success, prints the phone number in E.164 format to stdout — clean, no extra text. Useful for capturing in scripts.</p>
+
+      <pre><code><span class="cmd">botcall provision</span>
+<span class="output">✓ Provisioned: +12065551234
++12065551234</span>
+
+<span class="cmd">botcall provision --area-code 415</span>
+<span class="output">✓ Provisioned: +14155559876
++14155559876</span>
+
+<span class="comment"># Capture in a script</span>
+<span class="cmd">NUMBER=$(botcall provision)
+echo "My number: $NUMBER"</span></code></pre>
+
+      <ul class="exit-codes">
+        <li><span class="exit-code">0</span><span class="exit-desc">Number provisioned successfully</span></li>
+        <li><span class="exit-code">1</span><span class="exit-desc">Limit reached for plan, not authenticated, or provisioning error</span></li>
+      </ul>
+
+      <div class="warn">
+        <strong>Billing:</strong> Each provisioned number is billed monthly until released. The Starter plan allows 1 number. The Pro plan allows 5. Exceeding your limit returns an error — no number is charged.
+      </div>
+
+      <!-- ======== LIST ======== -->
+      <h2 id="cmd-list">botcall list</h2>
+
+      <pre><code><span class="cmd">botcall list</span> [<span class="flag">--json</span>]
+<span class="cmd">botcall ls</span> [<span class="flag">--json</span>]   <span class="comment"># alias</span></code></pre>
+
+      <p>Lists all provisioned phone numbers on your account.</p>
+
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>--json</td>
+            <td>Output as JSON array instead of the default table. Use for scripting.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code><span class="cmd">botcall list</span>
+<span class="output">
+Your numbers:
+
+  +12065551234 (active) - SMS, Voice</span>
+
+<span class="cmd">botcall list --json</span>
+<span class="output">[
+  {
+    "id": "abc123",
+    "number": "+12065551234",
+    "status": "active",
+    "capabilities": {
+      "sms": true,
+      "voice": true,
+      "mms": false
+    }
+  }
+]</span></code></pre>
+
+      <p>The <code>id</code> field from <code>--json</code> output is used with <code>botcall release &lt;id&gt;</code>.</p>
+
+      <!-- ======== INBOX ======== -->
+      <h2 id="cmd-inbox">botcall inbox</h2>
+
+      <pre><code><span class="cmd">botcall inbox</span> [<span class="flag">--limit</span> <span class="val">&lt;n&gt;</span>] [<span class="flag">--json</span>]</code></pre>
+
+      <p>Shows recent incoming messages for all your numbers.</p>
+
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Short</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>--limit &lt;n&gt;</td>
+            <td>-l</td>
+            <td>10</td>
+            <td>Number of messages to fetch. Must be a positive integer.</td>
+          </tr>
+          <tr>
+            <td>--json</td>
+            <td></td>
+            <td>false</td>
+            <td>Output as JSON array instead of the default display.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code><span class="cmd">botcall inbox</span>
+<span class="output">
+Recent messages:
+
+  2026-03-30T14:22:11Z
+  ← +15551234567 [CODE: 847291]
+  Your verification code is 847291. Do not share it.
+</span>
+
+<span class="cmd">botcall inbox --limit 50 --json</span>
+<span class="output">[
+  {
+    "id": "msg_xxx",
+    "from": "+15551234567",
+    "to": "+12065551234",
+    "body": "Your verification code is 847291.",
+    "code": "847291",
+    "direction": "inbound",
+    "receivedAt": "2026-03-30T14:22:11Z"
+  }
+]</span></code></pre>
+
+      <p>The <code>code</code> field is populated when a numeric verification code is automatically extracted from the message body.</p>
+
+      <!-- ======== GET-CODE ======== -->
+      <h2 id="cmd-get-code">botcall get-code</h2>
+
+      <pre><code><span class="cmd">botcall get-code</span> [<span class="flag">--timeout</span> <span class="val">&lt;seconds&gt;</span>]</code></pre>
+
+      <p>Waits for an incoming SMS and extracts the verification code. Call this <em>after</em> triggering the verification flow on the target service. Prints only the code to stdout — nothing else — making it ideal for scripts.</p>
+
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Short</th><th>Default</th><th>Values</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>--timeout &lt;seconds&gt;</td>
+            <td>-t</td>
+            <td>30</td>
+            <td>1–30</td>
+            <td>How long to wait for a message before giving up. Maximum is 30 seconds. Values above 30 are clamped to 30.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code><span class="comment"># Wait up to 30 seconds (default)</span>
+<span class="cmd">botcall get-code</span>
+<span class="output">847291</span>
+
+<span class="comment"># Wait up to 20 seconds</span>
+<span class="cmd">botcall get-code --timeout 20</span>
+<span class="output">583012</span>
+
+<span class="comment"># Capture in a script</span>
+<span class="cmd">CODE=$(botcall get-code)
+echo "Code: $CODE"</span></code></pre>
+
+      <ul class="exit-codes">
+        <li><span class="exit-code">0</span><span class="exit-desc">Code found. Printed to stdout. Nothing else on stdout.</span></li>
+        <li><span class="exit-code">1</span><span class="exit-desc">Timeout — no message received within the timeout window. Or: not authenticated, no number provisioned, API error.</span></li>
+      </ul>
+
+      <div class="note">
+        <strong>How it works:</strong> Records the current timestamp, then polls the API until a message arrives that is newer than that timestamp. If the message body contains a numeric code (4–8 digits), it is extracted automatically. If no code is found, the full message body is printed instead.
+      </div>
+
+      <!-- ======== RELEASE ======== -->
+      <h2 id="cmd-release">botcall release</h2>
+
+      <pre><code><span class="cmd">botcall release</span> <span class="val">&lt;number-id&gt;</span></code></pre>
+
+      <p>Releases a provisioned phone number. Billing stops immediately. The number returns to the pool and cannot be recovered.</p>
+
+      <p>Get the number ID from <code>botcall list --json</code>:</p>
+
+      <pre><code><span class="comment"># Step 1: find the ID</span>
+<span class="cmd">botcall list --json</span>
+<span class="output">[{ "id": "abc123", "number": "+12065551234", ... }]</span>
+
+<span class="comment"># Step 2: release it</span>
+<span class="cmd">botcall release abc123</span>
+<span class="output">✓ Number released</span></code></pre>
+
+      <ul class="exit-codes">
+        <li><span class="exit-code">0</span><span class="exit-desc">Number released</span></li>
+        <li><span class="exit-code">1</span><span class="exit-desc">Number not found, not owned by your account, or API error</span></li>
+      </ul>
+
+      <!-- ======== USAGE ======== -->
+      <h2 id="cmd-usage">botcall usage</h2>
+
+      <pre><code><span class="cmd">botcall usage</span></code></pre>
+
+      <p>Shows your current plan, limits, and usage for the billing period.</p>
+
+      <pre><code><span class="cmd">botcall usage</span>
+<span class="output">
+Plan: STARTER
+
+Limits:
+  Phone numbers: 1/1
+  SMS this month: 3/100</span></code></pre>
+
+      <p>No flags. Human-readable output only.</p>
+
+      <!-- ======== BILLING ======== -->
+      <h2 id="cmd-billing">botcall billing</h2>
+
+      <pre><code><span class="cmd">botcall billing</span></code></pre>
+
+      <p>Opens the Stripe billing portal in your default browser. From there you can update your payment method, view invoices, or cancel your subscription.</p>
+
+      <p>No flags.</p>
+
+      <!-- ======== UPGRADE ======== -->
+      <h2 id="cmd-upgrade">botcall upgrade</h2>
+
+      <pre><code><span class="cmd">botcall upgrade</span> <span class="val">&lt;plan&gt;</span></code></pre>
+
+      <p>Creates a Stripe checkout session and opens it in your browser to upgrade your plan.</p>
+
+      <table>
+        <thead>
+          <tr><th>Argument</th><th>Values</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>&lt;plan&gt;</td>
+            <td><code>starter</code> | <code>pro</code></td>
+            <td>The plan to upgrade to. <code>starter</code> is $9/mo, <code>pro</code> is $29/mo.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code><span class="cmd">botcall upgrade starter</span>
+<span class="output">Opening checkout in browser...
+
+If browser doesn't open, visit:
+https://checkout.stripe.com/...</span></code></pre>
+
+      <!-- ======== MCP ======== -->
+      <h2 id="mcp">MCP Server</h2>
+
+      <p>botcall ships a Model Context Protocol server (<code>botcall-mcp</code>) for Claude Desktop and any other MCP-compatible AI tool.</p>
+
+      <pre><code><span class="cmd">npm install -g botcall-mcp</span></code></pre>
+
+      <p>Add to your Claude Desktop config at <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+
+      <pre><code>{
+  "mcpServers": {
+    "botcall": {
+      "command": "npx",
+      "args": ["-y", "botcall-mcp"],
+      "env": {
+        "BOTCALL_API_KEY": "bs_live_xxxxx"
+      }
+    }
+  }
+}</code></pre>
+
+      <p>Available MCP tools:</p>
+
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>provision_number</td><td>Provision a new phone number. Optional: <code>area_code</code>, <code>country</code>.</td></tr>
+          <tr><td>list_numbers</td><td>List all provisioned numbers.</td></tr>
+          <tr><td>release_number</td><td>Release a number by ID.</td></tr>
+          <tr><td>get_inbox</td><td>Fetch recent messages. Optional: <code>limit</code>.</td></tr>
+          <tr><td>get_code</td><td>Wait for a verification code. Optional: <code>timeout</code> (1–30s).</td></tr>
+          <tr><td>get_usage</td><td>Get plan and usage info.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ======== SCRIPTING ======== -->
+      <h2 id="scripting">Scripting</h2>
+
+      <p>All commands that output useful data print it to stdout. Spinners and labels go to stderr so they don't pollute captured output.</p>
+
+      <pre><code><span class="comment">#!/bin/bash
+# Full automation example: provision a number, wait for a code, release the number</span>
+
+export BOTCALL_API_KEY=bs_live_xxxxx
+
+<span class="comment"># Provision</span>
+<span class="cmd">NUMBER=$(botcall provision)
+echo "Number: $NUMBER"</span>
+
+<span class="comment"># ... trigger the verification flow using $NUMBER ...</span>
+
+<span class="comment"># Wait for code</span>
+<span class="cmd">CODE=$(botcall get-code --timeout 30)
+if [ $? -ne 0 ]; then
+  echo "Timed out waiting for code"
+  exit 1
+fi
+echo "Code: $CODE"</span>
+
+<span class="comment"># Get the number ID and release it</span>
+<span class="cmd">ID=$(botcall list --json | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+botcall release "$ID"</span></code></pre>
+
+      <!-- ======== ENV VARS ======== -->
+      <h2 id="env-vars">Environment Variables</h2>
+
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BOTCALL_API_KEY</td>
+            <td>API key. Overrides the saved key from <code>botcall auth login</code>. Required if not logged in.</td>
+          </tr>
+          <tr>
+            <td>BOTCALL_API_URL</td>
+            <td>Override the API base URL. Default: <code>https://api.botcall.io</code>. Only needed for self-hosted.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note">
+        <strong>CI/CD:</strong> Set <code>BOTCALL_API_KEY</code> as a secret in your CI environment. Do not call <code>botcall auth login</code> in CI — the env var is enough.
+      </div>
+    </main>
+  </div>
+
+  <footer style="border-top: 1px solid var(--border); padding: 3rem 2rem; margin-left: var(--sidebar-width);">
+    <div style="max-width: 860px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <a href="/" style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-muted);">☎ botcall</a>
+      <div style="display: flex; gap: 2rem;">
+        <a href="mailto:hello@botcall.io" style="font-size: 0.85rem; color: var(--text-dim);">Contact</a>
+        <span style="font-size: 0.85rem; color: var(--text-dim);">© 2026</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -453,10 +453,24 @@
       }
       list.innerHTML = numbers.map(n => `
         <div class="key-row">
-          <span class="key-value" style="color:var(--text);letter-spacing:normal">${n.number}</span>
+          <span class="key-value" style="color:var(--text);letter-spacing:normal;font-size:0.95rem">${n.number}</span>
           <span style="font-family:monospace;font-size:0.75rem;color:var(--text-dim)">${n.status}</span>
+          <button class="btn btn-sm btn-ghost" style="color:#ef4444;margin-left:auto" onclick="releaseNumber('${n.id}', '${n.number}')">release</button>
         </div>
       `).join('');
+    }
+
+    async function releaseNumber(id, number) {
+      if (!confirm(`Release ${number}?\n\nThis stops billing for this number. It cannot be undone.`)) return;
+      const res = await apiRequest(`/v1/phone/numbers/${id}`, { method: 'DELETE' });
+      if (res.success) {
+        const numbersRes = await apiRequest('/v1/phone/numbers');
+        renderNumbers(numbersRes.data || []);
+        const usageRes = await apiRequest('/v1/billing/usage');
+        renderUsage(usageRes.data);
+      } else {
+        alert(res.error?.message || 'Failed to release number');
+      }
     }
 
     async function issueFirstKey(existingKeys) {

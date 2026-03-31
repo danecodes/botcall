@@ -103,12 +103,13 @@ export async function authMiddleware(c: Context, next: Next) {
 
     await next();
   } catch (err) {
-    console.error('Auth error:', err);
+    const reason = (err as any)?.reason || (err as any)?.message || String(err);
+    console.error('Auth error:', reason, err);
     return c.json({
       success: false,
       error: {
         code: 'UNAUTHORIZED',
-        message: 'Invalid token',
+        message: `Auth failed: ${reason}`,
       },
     }, 401);
   }

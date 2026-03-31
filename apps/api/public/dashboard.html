@@ -408,26 +408,53 @@
 
     async function pollForSubscription(attempts = 0) {
       if (attempts > 20) {
-        // Give up and show pricing again
         show('pricing-section');
         return;
       }
       const usageRes = await apiRequest('/v1/billing/usage');
       const plan = usageRes.data?.plan;
       if (plan && plan !== 'inactive') {
-        await loadDashboard(usageRes.data);
+        await loadDashboard(usageRes.data, true);
       } else {
         await new Promise(r => setTimeout(r, 1500));
         await pollForSubscription(attempts + 1);
       }
     }
 
-    async function loadDashboard(usageData) {
+    async function loadDashboard(usageData, newSubscription = false) {
       show('dashboard');
 
       const keysRes = await apiRequest('/v1/users/me/api-keys');
-      renderKeys(keysRes.data || []);
+      const keys = keysRes.data || [];
+
+      // New subscriber: delete silently-created key and issue a fresh visible one
+      if (newSubscription || (keys.length > 0 && !localStorage.getItem('botcall_key_seen'))) {
+        await issueFirstKey(keys);
+      } else {
+        renderKeys(keys);
+      }
+
       renderUsage(usageData);
+    }
+
+    async function issueFirstKey(existingKeys) {
+      // Delete any silently-created keys the user never saw
+      for (const k of existingKeys) {
+        await apiRequest(`/v1/users/me/api-keys/${k.id}`, { method: 'DELETE' }).catch(() => {});
+      }
+      // Create a fresh key and show it
+      const res = await apiRequest('/v1/users/me/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Default' }),
+      });
+      if (res.data?.key) {
+        localStorage.setItem('botcall_key_seen', '1');
+        document.getElementById('new-key-value').textContent = res.data.key;
+        document.getElementById('new-key-banner').classList.add('visible');
+        document.getElementById('qs-key').textContent = res.data.key;
+      }
+      const keysRes = await apiRequest('/v1/users/me/api-keys');
+      renderKeys(keysRes.data || []);
     }
 
     function renderKeys(keys) {
@@ -483,10 +510,9 @@
     }
 
     async function createKey() {
-      const name = prompt('Key name (optional):') || 'Default';
       const res = await apiRequest('/v1/users/me/api-keys', {
         method: 'POST',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: 'Default' }),
       });
       if (res.data?.key) {
         document.getElementById('new-key-value').textContent = res.data.key;

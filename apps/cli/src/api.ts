@@ -128,7 +128,7 @@ export async function pollForMessage(options: {
 // ============ Billing ============
 
 export interface Usage {
-  plan: 'free' | 'starter' | 'pro';
+  plan: 'inactive' | 'starter' | 'pro';
   limits: { phoneNumbers: number; smsPerMonth: number };
   usage: { phoneNumbers: number; smsThisMonth: number };
   canProvision: boolean;

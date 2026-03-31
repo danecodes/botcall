@@ -4,6 +4,7 @@ import { program } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { setApiKey, clearConfig, isConfigured, getConfig, isApiMode, setCredentials } from './config.js';
+import { getMcpClientPaths, configureMcpFile, configureClaudeCode } from './setup.js';
 import * as api from './api.js';
 
 // Initialize API config if available
@@ -297,7 +298,7 @@ program
       console.log(`  Phone numbers: ${usage.usage.phoneNumbers}/${usage.limits.phoneNumbers}`);
       console.log(`  SMS this month: ${usage.usage.smsThisMonth}/${usage.limits.smsPerMonth}`);
       
-      if (usage.plan === 'free') {
+      if (usage.plan === 'inactive') {
         console.log('\n' + chalk.yellow('Upgrade to provision phone numbers:'));
         console.log(chalk.cyan('  botcall upgrade starter') + ' - $9/mo (1 number, 100 SMS)');
         console.log(chalk.cyan('  botcall upgrade pro') + '     - $29/mo (5 numbers, 500 SMS)');
@@ -377,6 +378,97 @@ program
     } catch (error) {
       spinner.fail(`Failed: ${(error as Error).message}`);
       process.exit(1);
+    }
+  });
+
+// ============ SETUP ============
+
+program
+  .command('setup')
+  .description('One-command setup: saves API key, configures MCP clients, provisions a number, and confirms SMS works')
+  .requiredOption('--api-key <key>', 'Your botcall API key (starts with bs_live_)')
+  .option('--api-url <url>', 'API URL (optional, for self-hosted)')
+  .action(async (options: { apiKey: string; apiUrl?: string }) => {
+    const { apiKey, apiUrl } = options;
+
+    // 1. Save key
+    setApiKey(apiKey, apiUrl);
+    api.setApiConfig(apiKey, apiUrl);
+    console.log(chalk.green('✓ API key saved'));
+
+    // 2. Check plan
+    const spinner = ora('Checking account...').start();
+    let usage;
+    try {
+      usage = await api.getUsage();
+      spinner.stop();
+    } catch (error) {
+      spinner.fail(`Failed to connect: ${(error as Error).message}`);
+      process.exit(1);
+    }
+
+    if (!usage.canProvision) {
+      console.log('\n' + chalk.yellow('Cannot provision a phone number with your current plan.'));
+      console.log('Upgrade at: ' + chalk.cyan('https://botcall.io/dashboard'));
+      process.exit(1);
+    }
+
+    // 3. Configure MCP clients
+    console.log('\n' + chalk.bold('Configuring MCP clients...'));
+    const mcpPaths = getMcpClientPaths();
+    for (const [name, filePath] of Object.entries(mcpPaths)) {
+      const result = configureMcpFile(filePath, apiKey);
+      if (result.configured) {
+        const tag = result.created ? chalk.dim('(created)') : chalk.dim('(updated)');
+        console.log(chalk.green(`  ✓ ${name}`) + ' ' + tag);
+      } else {
+        console.log(chalk.yellow(`  ✗ ${name}: ${result.error}`));
+      }
+    }
+
+    // 4. Claude Code CLI
+    const ccResult = await configureClaudeCode(apiKey);
+    if (ccResult.configured) {
+      console.log(chalk.green('  ✓ Claude Code'));
+    } else {
+      console.log(chalk.dim('  · Claude Code: run manually if needed:'));
+      console.log(chalk.cyan(`    BOTCALL_API_KEY=${apiKey} claude mcp add botcall -- npx -y botcall-mcp`));
+    }
+
+    // 5. Provision a number
+    console.log('');
+    const provSpinner = ora('Provisioning phone number...').start();
+    let number: string;
+    try {
+      const result = await api.provisionNumber({});
+      number = result.number;
+      provSpinner.succeed(`Provisioned: ${chalk.green(number)}`);
+    } catch (error) {
+      provSpinner.fail(`Failed to provision: ${(error as Error).message}`);
+      process.exit(1);
+    }
+
+    // 6. Instructions
+    console.log('\n' + chalk.bold('Almost done!'));
+    console.log(`Send a text with a code to ${chalk.cyan(number)} to verify everything works.\n`);
+
+    // 7. Poll for confirmation
+    const pollSpinner = ora('Waiting for test SMS (30s)...').start();
+    try {
+      const since = new Date().toISOString();
+      const result = await api.pollForMessage({ timeout: 30, since });
+      pollSpinner.stop();
+      const code = result.code || api.extractCode(result.message.body);
+      if (code) {
+        console.log(chalk.green(`✓ Got it! Code: ${chalk.bold(code)}`));
+      } else {
+        console.log(chalk.green('✓ SMS received:'), result.message.body);
+      }
+      console.log('\n' + chalk.bold('Setup complete.') + ' Your number: ' + chalk.cyan(number));
+    } catch (error) {
+      pollSpinner.warn('No SMS received within 30s — but setup is complete.');
+      console.log('Your number: ' + chalk.cyan(number));
+      console.log('Test with: ' + chalk.cyan('botcall get-code'));
     }
   });
 

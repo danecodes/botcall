@@ -123,8 +123,12 @@ export async function releaseNumber(userId: string, numberId: string) {
     throw new Error('Phone number not found');
   }
 
-  // Release from provider
-  await sms.releaseNumber(number.providerSid);
+  // Release from provider (skip if no providerSid — number may not have been fully provisioned)
+  if (number.providerSid) {
+    await sms.releaseNumber(number.providerSid);
+  } else {
+    console.warn(`releaseNumber: no providerSid for number ${numberId}, skipping provider release`);
+  }
 
   // Mark as released in our database
   await db

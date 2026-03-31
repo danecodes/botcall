@@ -139,8 +139,8 @@ export class SignalWireProvider implements SmsProvider {
 
     if (!releaseRes.ok) {
       const errText = await releaseRes.text();
-      console.error('Failed to release number:', errText);
-      throw new Error(`Failed to release number: ${releaseRes.statusText}`);
+      console.error('Failed to release number:', releaseRes.status, errText);
+      throw new Error(`Failed to release number: ${releaseRes.status} ${errText}`);
     }
 
     console.log(`✓ Released SignalWire number ${numberSid}`);

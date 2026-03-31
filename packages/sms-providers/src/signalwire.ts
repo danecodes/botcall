@@ -85,8 +85,10 @@ export class SignalWireProvider implements SmsProvider {
     }
 
     const purchaseData = await purchaseRes.json();
-    const sid = purchaseData.data?.id;
-    const purchasedNumber = purchaseData.data?.number || phoneNumber;
+    console.log('SignalWire purchase response:', JSON.stringify(purchaseData));
+    // SW Relay REST returns flat object; older versions may wrap in .data
+    const sid = purchaseData.id || purchaseData.data?.id;
+    const purchasedNumber = purchaseData.number || purchaseData.data?.number || phoneNumber;
 
     // Configure webhook (SignalWire may not accept on purchase, so update separately)
     if (sid) {

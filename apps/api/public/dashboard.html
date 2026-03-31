@@ -273,6 +273,11 @@
     </div>
 
     <div class="card">
+      <div class="card-label">// phone numbers</div>
+      <div id="numbers-list"></div>
+    </div>
+
+    <div class="card">
       <div class="card-label">// plan & usage</div>
       <div id="plan-info"></div>
       <div class="usage-grid" id="usage-grid"></div>
@@ -434,7 +439,24 @@
         renderKeys(keys);
       }
 
+      const numbersRes = await apiRequest('/v1/phone/numbers');
+      renderNumbers(numbersRes.data || []);
+
       renderUsage(usageData);
+    }
+
+    function renderNumbers(numbers) {
+      const list = document.getElementById('numbers-list');
+      if (numbers.length === 0) {
+        list.innerHTML = '<p style="font-size:0.85rem;color:var(--text-dim);">No phone numbers yet. Run <code style="background:var(--bg);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.8rem;">botcall provision</code> to get one.</p>';
+        return;
+      }
+      list.innerHTML = numbers.map(n => `
+        <div class="key-row">
+          <span class="key-value" style="color:var(--text);letter-spacing:normal">${n.number}</span>
+          <span style="font-family:monospace;font-size:0.75rem;color:var(--text-dim)">${n.status}</span>
+        </div>
+      `).join('');
     }
 
     async function issueFirstKey(existingKeys) {

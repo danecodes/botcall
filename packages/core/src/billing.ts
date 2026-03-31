@@ -159,12 +159,14 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
   const plan = normalizePlan(sub?.plan);
   const limits = PLAN_LIMITS[plan];
 
-  // Get current phone number count
+  // Get current phone number count (scoped to active provider)
+  const currentProvider = process.env.SMS_PROVIDER || 'telnyx';
   const phoneCountResult = await db.select({ count: sql<number>`COUNT(*)` })
     .from(phoneNumbers)
     .where(and(
       eq(phoneNumbers.userId, userId),
-      eq(phoneNumbers.status, 'active')
+      eq(phoneNumbers.status, 'active'),
+      eq(phoneNumbers.provider, currentProvider)
     ));
   const phoneNumberCount = Number(phoneCountResult[0]?.count || 0);
 

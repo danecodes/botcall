@@ -574,9 +574,10 @@
       if (res.data?.url) window.location.href = res.data.url;
     }
 
-    function showAuth() {
-      show('auth-section');
+    function mountAuthComponent() {
       const el = document.getElementById('clerk-sign-in');
+      clerk.unmountSignIn(el);
+      clerk.unmountSignUp(el);
       if (window.location.hash === '#sign-up') {
         document.querySelector('.auth-header p').textContent = 'Create your account';
         clerk.mountSignUp(el, {
@@ -585,6 +586,7 @@
           signInUrl: '/dashboard',
         });
       } else {
+        document.querySelector('.auth-header p').textContent = 'Sign up to get started';
         clerk.mountSignIn(el, {
           appearance: clerkAppearance,
           afterSignInUrl: '/dashboard',
@@ -592,6 +594,12 @@
           signUpUrl: '/dashboard#sign-up',
         });
       }
+    }
+
+    function showAuth() {
+      show('auth-section');
+      mountAuthComponent();
+      window.addEventListener('hashchange', mountAuthComponent);
       clerk.addListener(({ user }) => {
         if (user) checkAndRoute();
       });

@@ -576,12 +576,22 @@
 
     function showAuth() {
       show('auth-section');
-      clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
-        appearance: clerkAppearance,
-        afterSignInUrl: '/dashboard',
-        afterSignUpUrl: '/dashboard',
-        signUpUrl: '/dashboard',
-      });
+      const el = document.getElementById('clerk-sign-in');
+      if (window.location.hash === '#sign-up') {
+        document.querySelector('.auth-header p').textContent = 'Create your account';
+        clerk.mountSignUp(el, {
+          appearance: clerkAppearance,
+          afterSignUpUrl: '/dashboard',
+          signInUrl: '/dashboard',
+        });
+      } else {
+        clerk.mountSignIn(el, {
+          appearance: clerkAppearance,
+          afterSignInUrl: '/dashboard',
+          afterSignUpUrl: '/dashboard',
+          signUpUrl: '/dashboard#sign-up',
+        });
+      }
       clerk.addListener(({ user }) => {
         if (user) checkAndRoute();
       });

@@ -582,15 +582,12 @@
         document.querySelector('.auth-header p').textContent = 'Create your account';
         clerk.mountSignUp(el, {
           appearance: clerkAppearance,
-          afterSignUpUrl: '/dashboard',
           signInUrl: '/dashboard',
         });
       } else {
         document.querySelector('.auth-header p').textContent = 'Sign up to get started';
         clerk.mountSignIn(el, {
           appearance: clerkAppearance,
-          afterSignInUrl: '/dashboard',
-          afterSignUpUrl: '/dashboard',
           signUpUrl: '/dashboard#sign-up',
         });
       }

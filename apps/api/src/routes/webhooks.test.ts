@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@botcall/phone', () => ({
   handleIncomingSms: vi.fn().mockResolvedValue({}),
+  getSmsProvider: vi.fn(() => ({
+    name: 'telnyx',
+    parseInboundWebhook: vi.fn((body: any) => ({
+      messageSid: body?.data?.id ?? '',
+      from: body?.data?.payload?.from?.phone_number ?? '',
+      to: body?.data?.payload?.to?.[0]?.phone_number ?? '',
+      body: body?.data?.payload?.text ?? '',
+      numMedia: 0,
+      mediaUrls: [],
+    })),
+  })),
 }));
 vi.mock('@botcall/db', () => ({
   getDb: vi.fn(),
@@ -44,7 +55,14 @@ describe('POST /webhooks/telnyx/sms', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(handleIncomingSms).toHaveBeenCalledWith(TELNYX_PAYLOAD);
+    expect(handleIncomingSms).toHaveBeenCalledWith({
+      messageSid: 'evt-abc',
+      from: '+15551234567',
+      to: '+12065551234',
+      body: 'Your code is 847291',
+      numMedia: 0,
+      mediaUrls: [],
+    });
   });
 
   it('returns 500 in production when TELNYX_PUBLIC_KEY is not set', async () => {

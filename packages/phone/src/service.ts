@@ -1,6 +1,6 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, gte } from 'drizzle-orm';
 import { getDb, phoneNumbers, smsMessages, usageRecords } from '@botcall/db';
-import { createSmsProviderFromEnv, type SmsProvider } from '@botcall/sms-providers';
+import { createSmsProviderFromEnv, type SmsProvider, type InboundMessage } from '@botcall/sms-providers';
 
 let provider: SmsProvider | null = null;
 
@@ -49,23 +49,26 @@ export async function provisionNumber(userId: string, options: {
 
       console.log(`✅ Successfully purchased ${result.phoneNumber} (${result.sid})`);
 
-      // Store in our database
-      const [phoneNumber] = await db.insert(phoneNumbers).values({
-        userId,
-        number: result.phoneNumber,
-        provider: sms.name,
-        providerSid: result.sid,
-        capabilities: { sms: result.smsEnabled, voice: true, mms: false },
-        status: 'active',
-      }).returning();
+      // Store in our database (transaction ensures both inserts succeed or neither does)
+      const phoneNumber = await db.transaction(async (tx) => {
+        const [pn] = await tx.insert(phoneNumbers).values({
+          userId,
+          number: result.phoneNumber,
+          provider: sms.name,
+          providerSid: result.sid,
+          capabilities: { sms: result.smsEnabled, voice: true, mms: false },
+          status: 'active',
+        }).returning();
 
-      // Record usage
-      await db.insert(usageRecords).values({
-        userId,
-        service: 'phone',
-        action: 'number_provisioned',
-        quantity: 1,
-        metadata: { phoneNumberId: phoneNumber.id },
+        await tx.insert(usageRecords).values({
+          userId,
+          service: 'phone',
+          action: 'number_provisioned',
+          quantity: 1,
+          metadata: { phoneNumberId: pn.id },
+        });
+
+        return pn;
       });
 
       return phoneNumber;
@@ -83,7 +86,6 @@ export async function provisionNumber(userId: string, options: {
  */
 export async function listNumbers(userId: string) {
   const db = getDb();
-  const sms = getSmsProvider();
 
   return db
     .select()
@@ -91,7 +93,6 @@ export async function listNumbers(userId: string) {
     .where(and(
       eq(phoneNumbers.userId, userId),
       eq(phoneNumbers.status, 'active'),
-      eq(phoneNumbers.provider, sms.name)
     ));
 }
 
@@ -142,20 +143,19 @@ export async function releaseNumber(userId: string, numberId: string) {
 }
 
 /**
- * Handle incoming SMS webhook (provider-agnostic)
+ * Handle incoming SMS (accepts pre-parsed InboundMessage from webhook handler)
  */
-export async function handleIncomingSms(body: Record<string, unknown>) {
+export async function handleIncomingSms(data: InboundMessage) {
   const db = getDb();
-  const sms = getSmsProvider();
 
-  // Parse using the provider's webhook parser
-  const data = sms.parseInboundWebhook(body);
-
-  // Find the phone number
+  // Find the phone number in our DB
   const [phoneNumber] = await db
     .select()
     .from(phoneNumbers)
-    .where(eq(phoneNumbers.number, data.to))
+    .where(and(
+      eq(phoneNumbers.number, data.to),
+      eq(phoneNumbers.status, 'active'),
+    ))
     .limit(1);
 
   if (!phoneNumber) {
@@ -163,26 +163,37 @@ export async function handleIncomingSms(body: Record<string, unknown>) {
     return null;
   }
 
-  // Store the message
-  const [message] = await db.insert(smsMessages).values({
-    phoneNumberId: phoneNumber.id,
-    userId: phoneNumber.userId,
-    from: data.from,
-    to: data.to,
-    body: data.body,
-    direction: 'inbound',
-    status: 'received',
-    providerSid: data.messageSid,
-    receivedAt: new Date(),
-  }).returning();
+  // Store message + usage in a transaction; skip on duplicate providerSid (idempotent)
+  const message = await db.transaction(async (tx) => {
+    const inserted = await tx.insert(smsMessages).values({
+      phoneNumberId: phoneNumber.id,
+      userId: phoneNumber.userId,
+      from: data.from,
+      to: data.to,
+      body: data.body,
+      direction: 'inbound',
+      status: 'received',
+      providerSid: data.messageSid || null,
+      receivedAt: new Date(),
+    })
+    .onConflictDoNothing({ target: smsMessages.providerSid })
+    .returning();
 
-  // Record usage
-  await db.insert(usageRecords).values({
-    userId: phoneNumber.userId,
-    service: 'phone',
-    action: 'sms_received',
-    quantity: 1,
-    metadata: { messageId: message.id },
+    if (inserted.length === 0) {
+      // Duplicate webhook — already processed
+      console.log(`[SMS] Duplicate webhook for providerSid ${data.messageSid}, skipping`);
+      return null;
+    }
+
+    await tx.insert(usageRecords).values({
+      userId: phoneNumber.userId,
+      service: 'phone',
+      action: 'sms_received',
+      quantity: 1,
+      metadata: { messageId: inserted[0].id },
+    });
+
+    return inserted[0];
   });
 
   return message;
@@ -195,17 +206,29 @@ export async function getMessages(userId: string, options: {
   phoneNumberId?: string;
   direction?: 'inbound' | 'outbound';
   limit?: number;
+  since?: string;
 }) {
   const db = getDb();
 
-  const query = db
+  const conditions: ReturnType<typeof eq>[] = [eq(smsMessages.userId, userId)];
+
+  if (options.phoneNumberId) {
+    conditions.push(eq(smsMessages.phoneNumberId, options.phoneNumberId));
+  }
+
+  if (options.since) {
+    const sinceDate = new Date(options.since);
+    if (!isNaN(sinceDate.getTime())) {
+      conditions.push(gte(smsMessages.receivedAt, sinceDate));
+    }
+  }
+
+  return db
     .select()
     .from(smsMessages)
-    .where(eq(smsMessages.userId, userId))
+    .where(conditions.length === 1 ? conditions[0] : and(...conditions))
     .orderBy(desc(smsMessages.receivedAt))
     .limit(options.limit || 50);
-
-  return query;
 }
 
 /**
@@ -231,26 +254,29 @@ export async function sendSms(userId: string, to: string, body: string, fromNumb
   // Send via provider
   const result = await sms.sendSms(fromNumber.number, to, body);
 
-  // Store the message
-  const [message] = await db.insert(smsMessages).values({
-    phoneNumberId: fromNumber.id,
-    userId,
-    from: fromNumber.number,
-    to,
-    body,
-    direction: 'outbound',
-    status: result.status,
-    providerSid: result.sid,
-    receivedAt: new Date(),
-  }).returning();
+  // Store message + usage in a transaction
+  const message = await db.transaction(async (tx) => {
+    const [msg] = await tx.insert(smsMessages).values({
+      phoneNumberId: fromNumber.id,
+      userId,
+      from: fromNumber.number,
+      to,
+      body,
+      direction: 'outbound',
+      status: result.status,
+      providerSid: result.sid || null,
+      receivedAt: new Date(),
+    }).returning();
 
-  // Record usage
-  await db.insert(usageRecords).values({
-    userId,
-    service: 'phone',
-    action: 'sms_sent',
-    quantity: 1,
-    metadata: { messageId: message.id },
+    await tx.insert(usageRecords).values({
+      userId,
+      service: 'phone',
+      action: 'sms_sent',
+      quantity: 1,
+      metadata: { messageId: msg.id },
+    });
+
+    return msg;
   });
 
   return message;
@@ -261,12 +287,12 @@ export async function sendSms(userId: string, to: string, body: string, fromNumb
  */
 export function extractCode(text: string): string | null {
   const patterns = [
-    /\b(\d{6})\b/,           // 6 digits
-    /\b(\d{4})\b/,           // 4 digits
-    /\b(\d{5})\b/,           // 5 digits
-    /\b(\d{8})\b/,           // 8 digits
-    /code[:\s]+(\d{4,8})/i,  // "code: 123456"
-    /is[:\s]+(\d{4,8})/i,    // "is 123456"
+    /(?:code|pin|otp|passcode)[:\s]+(\d{4,8})/i,  // "code: 123456", "PIN: 8472"
+    /is[:\s]+(\d{4,8})/i,                          // "is 123456"
+    /\b(\d{6})\b/,                                 // 6 digits
+    /\b(\d{4})\b/,                                 // 4 digits
+    /\b(\d{5})\b/,                                 // 5 digits
+    /\b(\d{8})\b/,                                 // 8 digits
   ];
 
   for (const pattern of patterns) {

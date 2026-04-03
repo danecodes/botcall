@@ -10,6 +10,72 @@ import { getRequestListener } from '@hono/node-server';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// ── Startup env validation ───────────────────────────────────────────────────
+// Fail fast before any connections are accepted so Railway keeps the previous
+// healthy replica alive during a bad deploy.
+
+const REQUIRED_ENV: Record<string, string> = {
+  DATABASE_URL: 'PostgreSQL connection string',
+  CLERK_SECRET_KEY: 'Clerk secret key (sk_live_...)',
+  CLERK_WEBHOOK_SECRET: 'Clerk webhook signing secret (whsec_...)',
+  STRIPE_SECRET_KEY: 'Stripe secret key (sk_live_...)',
+  STRIPE_WEBHOOK_SECRET: 'Stripe webhook signing secret (whsec_...)',
+  STRIPE_STARTER_PRICE_ID: 'Stripe price ID for Starter plan',
+  STRIPE_PRO_PRICE_ID: 'Stripe price ID for Pro plan',
+};
+
+const PROVIDER_ENV: Record<string, Record<string, string>> = {
+  signalwire: {
+    SIGNALWIRE_SPACE_URL: 'SignalWire space URL (e.g. yourspace.signalwire.com)',
+    SIGNALWIRE_PROJECT_ID: 'SignalWire project ID',
+    SIGNALWIRE_API_TOKEN: 'SignalWire API token',
+  },
+  telnyx: {
+    TELNYX_API_KEY: 'Telnyx API key',
+    TELNYX_MESSAGING_PROFILE_ID: 'Telnyx messaging profile ID',
+  },
+  twilio: {
+    TWILIO_ACCOUNT_SID: 'Twilio account SID',
+    TWILIO_AUTH_TOKEN: 'Twilio auth token',
+  },
+};
+
+function validateEnv() {
+  const missing: string[] = [];
+
+  for (const [key, description] of Object.entries(REQUIRED_ENV)) {
+    if (!process.env[key]) {
+      missing.push(`  ${key}: ${description}`);
+    }
+  }
+
+  const provider = process.env.SMS_PROVIDER || 'telnyx';
+  const providerVars = PROVIDER_ENV[provider];
+  if (providerVars) {
+    for (const [key, description] of Object.entries(providerVars)) {
+      if (!process.env[key]) {
+        missing.push(`  ${key}: ${description} (required for SMS_PROVIDER=${provider})`);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missing.forEach(m => console.error(m));
+    console.error('\nSet these variables in Railway before deploying.');
+    process.exit(1);
+  }
+
+  console.log(`✅ Environment validated (SMS_PROVIDER=${provider})`);
+}
+
+// Only validate in production — dev may run with partial env
+if (process.env.NODE_ENV === 'production') {
+  validateEnv();
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+
 import { authMiddleware } from './middleware/auth.js';
 import { phoneRoutes } from './routes/phone.js';
 import { webhookRoutes } from './routes/webhooks.js';
@@ -22,8 +88,21 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', cors());
 
-// Health check
+// Liveness probe (always succeeds — process is alive)
 app.get('/health', (c) => c.json({ status: 'ok' }));
+
+// Readiness probe (checks DB connectivity — used for Railway deploy health gate)
+app.get('/health/ready', async (c) => {
+  try {
+    const { getDb } = await import('@botcall/db');
+    const db = getDb();
+    await db.execute('SELECT 1' as any);
+    return c.json({ status: 'ready' });
+  } catch (error) {
+    console.error('Readiness check failed:', error);
+    return c.json({ status: 'not ready', error: (error as Error).message }, 503);
+  }
+});
 
 // Landing page
 app.get('/', (c) => {
@@ -45,6 +124,27 @@ app.get('/dashboard', (c) => {
     return c.html(html);
   } catch (e) {
     console.error('Dashboard error:', e);
+    return c.redirect('/');
+  }
+});
+
+// Static pages
+app.get('/terms', (c) => {
+  try {
+    const htmlPath = join(__dirname, 'public', 'terms.html');
+    const html = readFileSync(htmlPath, 'utf-8');
+    return c.html(html);
+  } catch (e) {
+    return c.redirect('/');
+  }
+});
+
+app.get('/privacy', (c) => {
+  try {
+    const htmlPath = join(__dirname, 'public', 'privacy.html');
+    const html = readFileSync(htmlPath, 'utf-8');
+    return c.html(html);
+  } catch (e) {
     return c.redirect('/');
   }
 });

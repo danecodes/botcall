@@ -30,24 +30,27 @@ program
     switch (action) {
       case 'login':
         if (options.apiKey) {
-          setApiKey(options.apiKey, options.apiUrl);
+          // Set config in memory for the verify call — only persist after success
           api.setApiConfig(options.apiKey, options.apiUrl);
-          console.log(chalk.green('✓ API key saved'));
-          
-          // Test the connection
-          const spinner = ora('Verifying...').start();
+
+          const spinner = ora('Verifying API key...').start();
           try {
             const numbers = await api.listNumbers();
+            // Save only after successful verification
+            setApiKey(options.apiKey, options.apiUrl);
             spinner.succeed(`Connected! You have ${numbers.length} phone number(s)`);
           } catch (error) {
             spinner.fail(`Connection failed: ${(error as Error).message}`);
+            console.log(chalk.dim('Key was not saved. Check your key and try again.'));
+            process.exit(1);
           }
         } else {
-          console.log('API key required. Get one from https://botcall.io\n');
-          console.log('Run:');
+          console.log(chalk.red('API key required.'));
+          console.log('\nRun:');
           console.log(chalk.cyan('  botcall auth login --api-key bs_live_xxxxx\n'));
           console.log('Or set environment variable:');
           console.log(chalk.cyan('  export BOTCALL_API_KEY=bs_live_xxxxx'));
+          process.exit(1);
         }
         break;
       case 'logout':
@@ -60,7 +63,7 @@ program
           if (isApiMode()) {
             console.log(chalk.green('✓ Authenticated (API mode)'));
             console.log(`  Key: ${cfg.apiKey?.slice(0, 12)}...`);
-            console.log(`  URL: ${cfg.apiUrl || 'https://botcall-production-f65b.up.railway.app'}`);
+            console.log(`  URL: ${cfg.apiUrl || 'https://api.botcall.io'}`);
           } else {
             console.log(chalk.green('✓ Authenticated (legacy Signalwire mode)'));
             console.log(`  Space: ${cfg.spaceUrl}`);
@@ -169,18 +172,20 @@ program
   .command('inbox')
   .description('View received messages')
   .option('-l, --limit <n>', 'Number of messages', '10')
+  .option('-n, --number-id <id>', 'Filter by phone number ID (from: botcall list --json)')
   .option('--json', 'Output as JSON')
-  .action(async (options: { limit?: string; json?: boolean }) => {
+  .action(async (options: { limit?: string; numberId?: string; json?: boolean }) => {
     if (!isConfigured()) {
       console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
       process.exit(1);
     }
 
     const spinner = ora('Fetching inbox...').start();
-    
+
     try {
       const messages = await api.getMessages({
         limit: parseInt(options.limit || '10', 10),
+        numberId: options.numberId,
       });
       spinner.stop();
       
@@ -213,7 +218,8 @@ program
   .command('get-code')
   .description('Wait for SMS and extract verification code')
   .option('-t, --timeout <seconds>', 'Timeout in seconds (default: 30, max: 30)', '30')
-  .action(async (options: { timeout?: string }) => {
+  .option('-n, --number-id <id>', 'Target a specific phone number ID (from: botcall list --json)')
+  .action(async (options: { timeout?: string; numberId?: string }) => {
     if (!isConfigured()) {
       console.error(chalk.red('Not authenticated. Run: botcall auth login --api-key YOUR_KEY'));
       process.exit(1);
@@ -221,12 +227,12 @@ program
 
     const timeout = Math.min(parseInt(options.timeout || '30', 10), 30);
     const spinner = ora('Waiting for verification code...').start();
-    
+
     try {
       // Get current timestamp to filter new messages
       const since = new Date().toISOString();
-      
-      const result = await api.pollForMessage({ timeout, since });
+
+      const result = await api.pollForMessage({ timeout, since, numberId: options.numberId });
       
       if (result.code) {
         spinner.stop();

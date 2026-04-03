@@ -321,6 +321,8 @@
       <div class="footer-logo">☎ botcall</div>
       <div class="footer-links">
         <a href="mailto:hello@botcall.io">Contact</a>
+        <a href="/terms" style="color:var(--text-dim);">Terms</a>
+        <a href="/privacy" style="color:var(--text-dim);">Privacy</a>
         <span style="color: var(--text-dim);">© 2026</span>
       </div>
     </div>
@@ -328,7 +330,7 @@
 
   <script>
     const CLERK_PK = 'pk_live_Y2xlcmsuYm90Y2FsbC5pbyQ';
-    const API_URL = 'https://botcall-production-f65b.up.railway.app';
+    const API_URL = 'https://api.botcall.io';
 
     let clerk = null;
 
@@ -432,9 +434,18 @@
       const keysRes = await apiRequest('/v1/users/me/api-keys');
       const keys = keysRes.data || [];
 
-      // New subscriber: delete silently-created key and issue a fresh visible one
-      if (newSubscription || (keys.length > 0 && !localStorage.getItem('botcall_key_seen'))) {
+      // New subscriber (just returned from Stripe): issue a fresh visible key
+      // Only triggered by newSubscription=true to avoid silently rotating keys
+      // on browser/session changes.
+      if (newSubscription && keys.length === 0) {
         await issueFirstKey(keys);
+      } else if (newSubscription) {
+        // Already has keys — just show them (previous setup or retry)
+        renderKeys(keys);
+        // Show banner to remind them to copy their key if they haven't yet
+        if (!localStorage.getItem('botcall_key_seen')) {
+          await issueFirstKey(keys);
+        }
       } else {
         renderKeys(keys);
       }
@@ -515,7 +526,16 @@
       if (!data) return;
       const { plan, limits, usage } = data;
 
-      document.getElementById('plan-info').innerHTML = `<div class="plan-badge">${plan}</div>`;
+      const upgradeBtn = plan === 'starter'
+        ? `<button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="upgradePlan()">Upgrade to Pro →</button>`
+        : '';
+
+      document.getElementById('plan-info').innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div class="plan-badge">${plan}</div>
+          ${upgradeBtn}
+        </div>
+      `;
       document.getElementById('usage-grid').innerHTML = `
         <div class="usage-stat">
           <div class="usage-stat-label">phone numbers</div>
@@ -526,6 +546,18 @@
           <div class="usage-stat-value">${usage.smsThisMonth}<span class="usage-stat-max"> / ${limits.smsPerMonth}</span></div>
         </div>
       `;
+    }
+
+    async function upgradePlan() {
+      const res = await apiRequest('/v1/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'pro', returnUrl: window.location.origin + '/dashboard' }),
+      });
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        alert(res.error?.message || 'Something went wrong');
+      }
     }
 
     async function subscribe(plan) {

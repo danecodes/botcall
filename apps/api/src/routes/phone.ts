@@ -5,6 +5,9 @@ import type { Variables } from '../types.js';
 
 const app = new Hono<{ Variables: Variables }>();
 
+// Simple per-user poll concurrency guard (single instance — sufficient for Railway single-process)
+const activePollers = new Set<string>();
+
 /**
  * GET /v1/phone/numbers
  * List user's phone numbers
@@ -101,9 +104,11 @@ app.delete('/numbers/:id', async (c) => {
  */
 app.get('/messages', async (c) => {
   const userId = c.get('userId');
-  const limit = parseInt(c.req.query('limit') || '50', 10);
+  const limitParam = parseInt(c.req.query('limit') || '50', 10);
+  const limit = isNaN(limitParam) ? 50 : limitParam;
+  const phoneNumberId = c.req.query('numberId');
 
-  const messages = await phoneService.getMessages(userId, { limit });
+  const messages = await phoneService.getMessages(userId, { limit, phoneNumberId });
 
   return c.json({
     success: true,
@@ -126,6 +131,19 @@ app.get('/messages', async (c) => {
  */
 app.post('/messages', async (c) => {
   const userId = c.get('userId');
+
+  // Check subscription is active before sending (costs real money)
+  const limitCheck = await checkUsageLimit(userId, 'receive_sms');
+  if (!limitCheck.allowed) {
+    return c.json({
+      success: false,
+      error: {
+        code: 'LIMIT_EXCEEDED',
+        message: limitCheck.reason,
+      },
+    }, 403);
+  }
+
   const body = await c.req.json();
 
   if (!body.to || !body.body) {
@@ -168,7 +186,9 @@ app.post('/messages', async (c) => {
  */
 app.get('/messages/poll', async (c) => {
   const userId = c.get('userId');
-  const timeout = parseInt(c.req.query('timeout') || '30', 10);
+
+  const timeoutParam = parseInt(c.req.query('timeout') || '30', 10);
+  const timeoutSecs = isNaN(timeoutParam) ? 30 : timeoutParam;
   const since = c.req.query('since'); // ISO timestamp
 
   const limitCheck = await checkUsageLimit(userId, 'receive_sms');
@@ -179,38 +199,52 @@ app.get('/messages/poll', async (c) => {
     }, 403);
   }
 
+  // One concurrent poll per user — prevents DB pool exhaustion
+  if (activePollers.has(userId)) {
+    return c.json({
+      success: false,
+      error: { code: 'POLL_CONFLICT', message: 'Another poll is already active for this account' },
+    }, 429);
+  }
+
+  const numberId = c.req.query('numberId');
   const startTime = Date.now();
-  const timeoutMs = Math.min(timeout, 30) * 1000; // Max 30 seconds
+  const timeoutMs = Math.min(timeoutSecs, 30) * 1000; // Max 30 seconds
 
-  while (Date.now() - startTime < timeoutMs) {
-    const messages = await phoneService.getMessages(userId, { limit: 10 });
-
-    // Filter to messages after 'since'
-    const newMessages = since
-      ? messages.filter(m => new Date(m.receivedAt) > new Date(since))
-      : messages;
-
-    if (newMessages.length > 0) {
-      const latest = newMessages[0];
-      const code = phoneService.extractCode(latest.body);
-
-      return c.json({
-        success: true,
-        data: {
-          message: {
-            id: latest.id,
-            from: latest.from,
-            to: latest.to,
-            body: latest.body,
-            receivedAt: latest.receivedAt,
-          },
-          code, // null if no code found
-        },
+  activePollers.add(userId);
+  try {
+    while (Date.now() - startTime < timeoutMs) {
+      // Push since filter into DB query instead of filtering in memory
+      const messages = await phoneService.getMessages(userId, {
+        limit: 50,
+        phoneNumberId: numberId,
+        since,
       });
-    }
 
-    // Wait 2 seconds before polling again
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      if (messages.length > 0) {
+        const latest = messages[0];
+        const code = phoneService.extractCode(latest.body);
+
+        return c.json({
+          success: true,
+          data: {
+            message: {
+              id: latest.id,
+              from: latest.from,
+              to: latest.to,
+              body: latest.body,
+              receivedAt: latest.receivedAt,
+            },
+            code, // null if no code found
+          },
+        });
+      }
+
+      // Wait 2 seconds before polling again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  } finally {
+    activePollers.delete(userId);
   }
 
   return c.json({

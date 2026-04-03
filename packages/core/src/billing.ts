@@ -138,6 +138,19 @@ export async function handleStripeWebhook(payload: string, signature: string): P
       }).where(eq(subscriptions.stripeCustomerId, customerId));
       break;
     }
+
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = invoice.customer as string;
+
+      // Mark subscription as past_due immediately so checkUsageLimit blocks access
+      await db.update(subscriptions).set({
+        status: 'past_due',
+      }).where(eq(subscriptions.stripeCustomerId, customerId));
+
+      console.log(`⚠️ Payment failed for customer ${customerId} — subscription marked past_due`);
+      break;
+    }
   }
 }
 
@@ -228,7 +241,7 @@ export async function createPortalSession(userId: string, returnUrl: string): Pr
   const s = getStripe();
 
   const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
-  if (!sub?.stripeCustomerId) throw new Error('No billing account');
+  if (!sub?.stripeCustomerId) throw new Error('No billing account found. Please subscribe to a plan first.');
 
   const session = await s.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,

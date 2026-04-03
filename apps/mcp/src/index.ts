@@ -84,6 +84,10 @@ const tools = [
           type: "number",
           description: "Maximum number of messages to return (default: 10)",
         },
+        numberId: {
+          type: "string",
+          description: "Filter messages for a specific phone number ID (from list_numbers). Omit to get messages across all numbers.",
+        },
       },
     },
   },
@@ -96,6 +100,10 @@ const tools = [
         timeout: {
           type: "number",
           description: "Seconds to wait for a message (default: 30, max: 30)",
+        },
+        numberId: {
+          type: "string",
+          description: "Filter polling to a specific phone number ID (from list_numbers). Omit to poll across all your numbers.",
         },
       },
     },
@@ -153,6 +161,8 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
 
     case "get_inbox": {
       const limit = (args.limit as number) || 10;
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (args.numberId) params.set('numberId', args.numberId as string);
       const result = await apiRequest<Array<{
         id: string;
         from: string;
@@ -161,7 +171,7 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
         direction: string;
         receivedAt: string;
         code: string | null;
-      }>>(`/v1/phone/messages?limit=${limit}`);
+      }>>(`/v1/phone/messages?${params}`);
 
       if (result.length === 0) {
         return "No messages received yet.";
@@ -172,11 +182,13 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
     case "get_code": {
       const timeout = (args.timeout as number) || 30;
       const since = new Date().toISOString();
+      const pollParams = new URLSearchParams({ timeout: String(timeout), since });
+      if (args.numberId) pollParams.set('numberId', args.numberId as string);
 
       const result = await apiRequest<{
         message: { id: string; from: string; to: string; body: string; receivedAt: string };
         code: string | null;
-      }>(`/v1/phone/messages/poll?timeout=${timeout}&since=${encodeURIComponent(since)}`);
+      }>(`/v1/phone/messages/poll?${pollParams}`);
 
       if (result.code) {
         return `Verification code: ${result.code}\n\nFull message: ${result.message.body}`;

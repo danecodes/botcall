@@ -1,8 +1,8 @@
 /**
- * Botservices API client
+ * Botcall API client
  */
 
-const DEFAULT_API_URL = 'https://botcall-production-f65b.up.railway.app';
+const DEFAULT_API_URL = 'https://api.botcall.io';
 
 interface ApiConfig {
   apiKey: string;
@@ -25,7 +25,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   const url = `${config.apiUrl || DEFAULT_API_URL}${path}`;
-  
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -36,7 +36,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   });
 
   const data = await response.json() as { success: boolean; error?: { message: string }; data?: T };
-  
+
   if (!data.success) {
     throw new Error(data.error?.message || 'API request failed');
   }
@@ -87,10 +87,11 @@ export interface Message {
   code: string | null;
 }
 
-export async function getMessages(options: { limit?: number } = {}): Promise<Message[]> {
+export async function getMessages(options: { limit?: number; numberId?: string } = {}): Promise<Message[]> {
   const params = new URLSearchParams();
   if (options.limit) params.set('limit', options.limit.toString());
-  
+  if (options.numberId) params.set('numberId', options.numberId);
+
   const query = params.toString() ? `?${params.toString()}` : '';
   return apiRequest<Message[]>(`/v1/phone/messages${query}`);
 }
@@ -116,11 +117,13 @@ export interface PollResult {
 export async function pollForMessage(options: {
   timeout?: number;
   since?: string;
+  numberId?: string;
 }): Promise<PollResult> {
   const params = new URLSearchParams();
   if (options.timeout) params.set('timeout', options.timeout.toString());
   if (options.since) params.set('since', options.since);
-  
+  if (options.numberId) params.set('numberId', options.numberId);
+
   const query = params.toString() ? `?${params.toString()}` : '';
   return apiRequest<PollResult>(`/v1/phone/messages/poll${query}`);
 }
@@ -157,12 +160,12 @@ export async function createPortal(returnUrl?: string): Promise<{ url: string }>
 
 export function extractCode(text: string): string | null {
   const patterns = [
+    /(?:code|pin|otp|passcode)[:\s]+(\d{4,8})/i,
+    /is[:\s]+(\d{4,8})/i,
     /\b(\d{6})\b/,
     /\b(\d{4})\b/,
     /\b(\d{5})\b/,
     /\b(\d{8})\b/,
-    /code[:\s]+(\d{4,8})/i,
-    /is[:\s]+(\d{4,8})/i,
   ];
 
   for (const pattern of patterns) {

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getDb, apiKeys, users, type User } from '@botcall/db';
 
 /**
@@ -89,7 +89,7 @@ export async function revokeApiKey(keyId: string, userId: string) {
 
   const result = await db
     .delete(apiKeys)
-    .where(eq(apiKeys.id, keyId))
+    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, userId)))
     .returning();
 
   return result.length > 0;

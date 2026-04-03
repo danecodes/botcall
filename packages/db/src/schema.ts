@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, jsonb, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, jsonb, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // ============ USERS & AUTH ============
 
@@ -20,7 +20,10 @@ export const apiKeys = pgTable('api_keys', {
   name: text('name').notNull().default('Default'),
   lastUsedAt: timestamp('last_used_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Fast lookup on every authenticated API request
+  keyHashIdx: index('api_keys_key_hash_idx').on(table.keyHash),
+}));
 
 // ============ BILLING ============
 
@@ -43,7 +46,10 @@ export const usageRecords = pgTable('usage_records', {
   quantity: integer('quantity').notNull().default(1),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Fast monthly SMS count lookups (checkUsageLimit runs on every poll + provision)
+  userCreatedAtIdx: index('usage_records_user_id_created_at_idx').on(table.userId, table.createdAt),
+}));
 
 // ============ PHONE SERVICE ============
 
@@ -70,7 +76,12 @@ export const smsMessages = pgTable('sms_messages', {
   providerSid: text('provider_sid'),
   receivedAt: timestamp('received_at').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Unique providerSid prevents duplicate inserts when provider retries webhooks
+  providerSidIdx: uniqueIndex('sms_messages_provider_sid_idx').on(table.providerSid),
+  // Fast queries for getMessages (called every 2s per active poller)
+  userReceivedAtIdx: index('sms_messages_user_id_received_at_idx').on(table.userId, table.receivedAt),
+}));
 
 // ============ TYPES ============
 

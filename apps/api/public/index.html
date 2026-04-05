@@ -317,38 +317,16 @@
     <h1>Give Claude<br>a phone number</h1>
     <p>Add botcall to your Claude config. Ask it to handle verification codes, account setup, or any task that needs SMS — it just works.</p>
 
-    <div class="terminal">
+    <div class="terminal" style="padding:0; overflow:hidden;">
       <div class="terminal-header">
         <div class="terminal-dot"></div>
         <div class="terminal-dot"></div>
         <div class="terminal-dot"></div>
-        <span class="terminal-title">Claude Code conversation</span>
+        <span class="terminal-title">Claude handling 2FA verification</span>
       </div>
-      <div class="terminal-body">
-        <div class="terminal-line">
-          <span class="terminal-prompt" style="color:var(--text-dim)">You</span>
-          <span class="terminal-command" style="color:var(--text-muted)">Set up a test account on that service. Handle the SMS verification.</span>
-        </div>
-        <br>
-        <div class="terminal-line">
-          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
-          <span class="terminal-command" style="color:var(--text-muted)">I'll provision a phone number first.</span>
-        </div>
-        <div class="terminal-output" style="padding-left:3.5rem">→ botcall_provision()</div>
-        <div class="terminal-output" style="padding-left:3.5rem">✓ Provisioned: <span class="terminal-highlight">+12065550147</span></div>
-        <br>
-        <div class="terminal-line">
-          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
-          <span class="terminal-command" style="color:var(--text-muted)">Account created. Waiting for the verification code...</span>
-        </div>
-        <div class="terminal-output" style="padding-left:3.5rem">→ botcall_get_code(timeout=60)</div>
-        <div class="terminal-output" style="padding-left:3.5rem">✓ Code: <span class="terminal-highlight">847291</span></div>
-        <br>
-        <div class="terminal-line">
-          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
-          <span class="terminal-command" style="color:var(--text-muted)">Done. Account verified and ready.</span>
-        </div>
-      </div>
+      <video autoplay muted loop playsinline style="width:100%; display:block;">
+        <source src="/agent-demo.mp4" type="video/mp4">
+      </video>
     </div>
 
     <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
@@ -394,6 +372,23 @@
         <h3 class="feature-title">Works with any agent</h3>
         <p class="feature-desc">REST API + CLI + MCP. Plug into Claude Code, LangChain, AutoGPT, or any custom agent framework.</p>
       </div>
+    </div>
+  </section>
+
+  <section class="code-section">
+    <div class="section-label">// cli</div>
+    <h2 class="section-title">Or use the command line</h2>
+    <p class="section-desc">One install, one command. Works in scripts, CI pipelines, and any agent framework.</p>
+    <div class="terminal" style="padding:0; overflow:hidden;">
+      <div class="terminal-header">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span class="terminal-title">Terminal</span>
+      </div>
+      <video autoplay muted loop playsinline style="width:100%; display:block;">
+        <source src="/cli-demo.mp4" type="video/mp4">
+      </video>
     </div>
   </section>
 

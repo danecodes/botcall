@@ -183,10 +183,9 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
     ));
   const phoneNumberCount = Number(phoneCountResult[0]?.count || 0);
 
-  // Get SMS received this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Get SMS received this month (UTC to avoid server-timezone drift)
+  const now = new Date();
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const smsCount = await db.select({ count: sql<number>`COALESCE(SUM(quantity), 0)` })
     .from(usageRecords)

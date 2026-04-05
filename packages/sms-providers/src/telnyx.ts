@@ -171,30 +171,34 @@ export class TelnyxProvider implements SmsProvider {
   }
 
   parseInboundWebhook(body: Record<string, unknown>): InboundMessage {
-    // Telnyx sends JSON webhooks with event_type = 'message.received'
-    const event = body as any;
-    const payload = event?.data?.payload || event?.payload || event;
-
-    const from = payload?.from?.phone_number || payload?.from || '';
-    const toArr = payload?.to;
-    const to = Array.isArray(toArr) ? toArr[0]?.phone_number : (payload?.to || '');
-    const text = payload?.text || payload?.body || '';
-    const messageId = event?.data?.id || payload?.id || '';
-
-    const mediaUrls: string[] = [];
-    if (Array.isArray(payload?.media)) {
-      for (const m of payload.media) {
-        if (m?.url) mediaUrls.push(m.url);
-      }
-    }
-
-    return {
-      messageSid: String(messageId),
-      from: String(from),
-      to: String(to),
-      body: String(text),
-      numMedia: mediaUrls.length,
-      mediaUrls,
-    };
+    return parseTelnyxInbound(body);
   }
+}
+
+/** Stateless Telnyx inbound webhook parser */
+export function parseTelnyxInbound(body: Record<string, unknown>): InboundMessage {
+  const event = body as any;
+  const payload = event?.data?.payload || event?.payload || event;
+
+  const from = payload?.from?.phone_number || payload?.from || '';
+  const toArr = payload?.to;
+  const to = Array.isArray(toArr) ? toArr[0]?.phone_number : (payload?.to || '');
+  const text = payload?.text || payload?.body || '';
+  const messageId = event?.data?.id || payload?.id || '';
+
+  const mediaUrls: string[] = [];
+  if (Array.isArray(payload?.media)) {
+    for (const m of payload.media) {
+      if (m?.url) mediaUrls.push(m.url);
+    }
+  }
+
+  return {
+    messageSid: String(messageId),
+    from: String(from),
+    to: String(to),
+    body: String(text),
+    numMedia: mediaUrls.length,
+    mediaUrls,
+  };
 }

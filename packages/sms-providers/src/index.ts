@@ -10,6 +10,13 @@ import { TelnyxProvider } from './telnyx.js';
 
 export type SmsProviderName = 'telnyx' | 'signalwire' | 'twilio';
 
+// Stateless inbound webhook parsers — one per provider format.
+// These don't need credentials, just the raw webhook body.
+import { parseTelnyxInbound } from './telnyx.js';
+import { parseTwilioInbound } from './twilio.js';
+import { parseSignalWireInbound } from './signalwire.js';
+export { parseTelnyxInbound, parseTwilioInbound, parseSignalWireInbound };
+
 /**
  * Create an SMS provider instance by name
  */

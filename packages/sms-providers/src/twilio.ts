@@ -113,23 +113,27 @@ export class TwilioProvider implements SmsProvider {
   }
 
   parseInboundWebhook(body: Record<string, unknown>): InboundMessage {
-    // Twilio sends form-encoded POST with these fields
-    const numMedia = parseInt(String(body.NumMedia || '0'), 10);
-    const mediaUrls: string[] = [];
-    for (let i = 0; i < numMedia; i++) {
-      const url = body[`MediaUrl${i}`];
-      if (typeof url === 'string') {
-        mediaUrls.push(url);
-      }
-    }
-
-    return {
-      messageSid: String(body.MessageSid || body.SmsSid || ''),
-      from: String(body.From || ''),
-      to: String(body.To || ''),
-      body: String(body.Body || ''),
-      numMedia,
-      mediaUrls,
-    };
+    return parseTwilioInbound(body);
   }
+}
+
+/** Stateless Twilio inbound webhook parser */
+export function parseTwilioInbound(body: Record<string, unknown>): InboundMessage {
+  const numMedia = parseInt(String(body.NumMedia || '0'), 10);
+  const mediaUrls: string[] = [];
+  for (let i = 0; i < numMedia; i++) {
+    const url = body[`MediaUrl${i}`];
+    if (typeof url === 'string') {
+      mediaUrls.push(url);
+    }
+  }
+
+  return {
+    messageSid: String(body.MessageSid || body.SmsSid || ''),
+    from: String(body.From || ''),
+    to: String(body.To || ''),
+    body: String(body.Body || ''),
+    numMedia,
+    mediaUrls,
+  };
 }

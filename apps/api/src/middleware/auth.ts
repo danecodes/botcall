@@ -21,8 +21,8 @@ export async function authMiddleware(c: Context, next: Next) {
     ? authHeader.slice(7)
     : authHeader;
 
-  // Try API key first (starts with bs_live_ or bs_test_)
-  if (token.startsWith('bs_live_') || token.startsWith('bs_test_')) {
+  // Try API key first
+  if (token.startsWith('bs_live_')) {
     const user = await validateApiKey(token);
 
     if (!user) {

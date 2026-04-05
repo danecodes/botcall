@@ -86,7 +86,11 @@ const app = new Hono();
 
 // Global middleware
 app.use('*', logger());
-app.use('*', cors());
+app.use('*', cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://botcall.io', 'https://www.botcall.io']
+    : '*',
+}));
 
 // Liveness probe (always succeeds — process is alive)
 app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -104,49 +108,37 @@ app.get('/health/ready', async (c) => {
   }
 });
 
-// Landing page
+// Static HTML cache — read once at startup, serve from memory
+const htmlCache = new Map<string, string>();
+function serveHtml(file: string): string | null {
+  if (!htmlCache.has(file)) {
+    try {
+      htmlCache.set(file, readFileSync(join(__dirname, 'public', file), 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
+  return htmlCache.get(file)!;
+}
+
 app.get('/', (c) => {
-  try {
-    const htmlPath = join(__dirname, 'public', 'index.html');
-    const html = readFileSync(htmlPath, 'utf-8');
-    return c.html(html);
-  } catch (e) {
-    console.error('Landing page error:', e);
-    return c.json({ name: 'botcall', status: 'ok' });
-  }
+  const html = serveHtml('index.html');
+  return html ? c.html(html) : c.json({ name: 'botcall', status: 'ok' });
 });
 
-// Dashboard
 app.get('/dashboard', (c) => {
-  try {
-    const htmlPath = join(__dirname, 'public', 'dashboard.html');
-    const html = readFileSync(htmlPath, 'utf-8');
-    return c.html(html);
-  } catch (e) {
-    console.error('Dashboard error:', e);
-    return c.redirect('/');
-  }
+  const html = serveHtml('dashboard.html');
+  return html ? c.html(html) : c.redirect('/');
 });
 
-// Static pages
 app.get('/terms', (c) => {
-  try {
-    const htmlPath = join(__dirname, 'public', 'terms.html');
-    const html = readFileSync(htmlPath, 'utf-8');
-    return c.html(html);
-  } catch (e) {
-    return c.redirect('/');
-  }
+  const html = serveHtml('terms.html');
+  return html ? c.html(html) : c.redirect('/');
 });
 
 app.get('/privacy', (c) => {
-  try {
-    const htmlPath = join(__dirname, 'public', 'privacy.html');
-    const html = readFileSync(htmlPath, 'utf-8');
-    return c.html(html);
-  } catch (e) {
-    return c.redirect('/');
-  }
+  const html = serveHtml('privacy.html');
+  return html ? c.html(html) : c.redirect('/');
 });
 
 // Install script

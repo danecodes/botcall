@@ -627,12 +627,14 @@
         clerk.mountSignUp(el, {
           appearance: clerkAppearance,
           signInUrl: '/dashboard',
+          afterSignUpUrl: '/dashboard',
         });
       } else {
         document.querySelector('.auth-header p').textContent = 'Sign up to get started';
         clerk.mountSignIn(el, {
           appearance: clerkAppearance,
           signUpUrl: '/dashboard#sign-up',
+          afterSignInUrl: '/dashboard',
         });
       }
     }

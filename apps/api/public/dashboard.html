@@ -514,11 +514,23 @@
         <div class="key-row">
           <span class="key-value">${k.prefix}••••••••••••••••••••</span>
           <span style="font-family:monospace;font-size:0.75rem;color:var(--text-dim)">${k.name}</span>
+          <button class="btn btn-sm btn-ghost" style="color:#ef4444;margin-left:auto" onclick="deleteKey('${k.id}')">revoke</button>
         </div>
       `).join('');
 
       if (keys[0]) {
         document.getElementById('qs-key').textContent = keys[0].prefix + '...';
+      }
+    }
+
+    async function deleteKey(id) {
+      if (!confirm('Revoke this API key?\n\nAnything using it will stop working immediately.')) return;
+      const res = await apiRequest(`/v1/users/me/api-keys/${id}`, { method: 'DELETE' });
+      if (res.success) {
+        const keysRes = await apiRequest('/v1/users/me/api-keys');
+        renderKeys(keysRes.data || []);
+      } else {
+        alert(res.error?.message || 'Failed to revoke key');
       }
     }
 

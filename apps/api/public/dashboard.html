@@ -405,8 +405,9 @@
 
       const usageRes = await apiRequest('/v1/billing/usage');
       const plan = usageRes.data?.plan;
+      const status = usageRes.data?.status;
 
-      if (!plan || plan === 'inactive') {
+      if (!plan || plan === 'inactive' || status === 'canceled') {
         show('pricing-section');
       } else {
         await loadDashboard(usageRes.data);
@@ -561,14 +562,21 @@
     }
 
     async function upgradePlan() {
-      const res = await apiRequest('/v1/billing/checkout', {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Upgrading...';
+      const res = await apiRequest('/v1/billing/upgrade', {
         method: 'POST',
-        body: JSON.stringify({ plan: 'pro', returnUrl: window.location.origin + '/dashboard' }),
+        body: JSON.stringify({ plan: 'pro' }),
       });
-      if (res.data?.url) {
-        window.location.href = res.data.url;
+      if (res.success) {
+        // Refresh usage panel to reflect new plan
+        const usageRes = await apiRequest('/v1/billing/usage');
+        renderUsage(usageRes.data);
       } else {
-        alert(res.error?.message || 'Something went wrong');
+        btn.disabled = false;
+        btn.textContent = 'Upgrade to Pro →';
+        alert(res.error?.message || 'Upgrade failed');
       }
     }
 

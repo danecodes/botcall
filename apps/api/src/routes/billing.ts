@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createCheckoutSession, createPortalSession, getUserPlanAndUsage, handleStripeWebhook, PLANS } from '@botcall/core';
+import { createCheckoutSession, createPortalSession, upgradeSubscription, getUserPlanAndUsage, handleStripeWebhook, PLANS } from '@botcall/core';
 import type { Variables } from '../types.js';
 
 const app = new Hono<{ Variables: Variables }>();
@@ -66,6 +66,33 @@ app.post('/checkout', async (c) => {
     return c.json({
       success: false,
       error: { code: 'CHECKOUT_FAILED', message: (error as Error).message },
+    }, 500);
+  }
+});
+
+/**
+ * POST /v1/billing/upgrade
+ * Upgrade existing subscription to a higher plan (avoids duplicate subscriptions)
+ */
+app.post('/upgrade', async (c) => {
+  const userId = c.get('userId');
+  const body = await c.req.json();
+  const planId = body.plan;
+
+  if (planId !== 'pro') {
+    return c.json({
+      success: false,
+      error: { code: 'INVALID_PLAN', message: 'Only upgrades to pro are supported' },
+    }, 400);
+  }
+
+  try {
+    await upgradeSubscription(userId, planId);
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: { code: 'UPGRADE_FAILED', message: (error as Error).message },
     }, 500);
   }
 });

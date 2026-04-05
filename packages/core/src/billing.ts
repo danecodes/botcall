@@ -234,6 +234,40 @@ export async function checkUsageLimit(userId: string, action: 'provision' | 'rec
 }
 
 /**
+ * Upgrade an existing subscription to a higher plan (avoids duplicate subscription bug)
+ */
+export async function upgradeSubscription(userId: string, planId: 'pro'): Promise<void> {
+  const db = getDb();
+  const s = getStripe();
+  const plans = getPlans();
+
+  if (!plans[planId].priceId) {
+    throw new Error(`Missing Stripe price ID for plan ${planId}`);
+  }
+
+  const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+  if (!sub?.stripeSubscriptionId) {
+    throw new Error('No active subscription to upgrade. Please contact support.');
+  }
+
+  // Retrieve the live Stripe subscription to get the item ID
+  const stripeSub = await s.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const item = stripeSub.items.data[0];
+  if (!item) throw new Error('Subscription has no items');
+
+  // Swap the price in-place (Stripe handles proration)
+  await s.subscriptions.update(sub.stripeSubscriptionId, {
+    items: [{ id: item.id, price: plans[planId].priceId! }],
+    proration_behavior: 'always_invoice',
+  });
+
+  // Update our DB immediately (webhook will also fire but this ensures consistency)
+  await db.update(subscriptions)
+    .set({ plan: planId })
+    .where(eq(subscriptions.userId, userId));
+}
+
+/**
  * Create a billing portal session for managing subscription
  */
 export async function createPortalSession(userId: string, returnUrl: string): Promise<string> {

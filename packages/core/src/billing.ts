@@ -130,7 +130,8 @@ export async function handleStripeWebhook(payload: string, signature: string): P
         : subscription.status === 'past_due' ? 'past_due'
         : 'canceled';
 
-      const periodEnd = (subscription as unknown as { current_period_end: number }).current_period_end;
+      // Stripe always sends current_period_end but the SDK types may not expose it in older versions
+      const periodEnd = (subscription as any).current_period_end as number;
 
       await db.update(subscriptions).set({
         status,
@@ -183,7 +184,7 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
     ));
   const phoneNumberCount = Number(phoneCountResult[0]?.count || 0);
 
-  // Get SMS received this month (UTC to avoid server-timezone drift)
+  // Get SMS this month — count both inbound and outbound (UTC to avoid server-timezone drift)
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
@@ -191,7 +192,7 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
     .from(usageRecords)
     .where(and(
       eq(usageRecords.userId, userId),
-      eq(usageRecords.action, 'sms_received'),
+      sql`${usageRecords.action} IN ('sms_received', 'sms_sent')`,
       gte(usageRecords.createdAt, startOfMonth)
     ));
   const smsThisMonth = Number(smsCount[0]?.count || 0);
@@ -209,7 +210,7 @@ export async function getUserPlanAndUsage(userId: string): Promise<{
 /**
  * Check if user can perform an action
  */
-export async function checkUsageLimit(userId: string, action: 'provision' | 'receive_sms'): Promise<{ allowed: boolean; reason?: string }> {
+export async function checkUsageLimit(userId: string, action: 'provision' | 'receive_sms' | 'send_sms'): Promise<{ allowed: boolean; reason?: string }> {
   const usage = await getUserPlanAndUsage(userId);
   const { plan, status, limits, canProvision, canReceiveSms } = usage;
 
@@ -225,7 +226,7 @@ export async function checkUsageLimit(userId: string, action: 'provision' | 'rec
     return { allowed: false, reason: `Phone number limit reached (${limits.phoneNumbers}). Upgrade your plan.` };
   }
 
-  if (action === 'receive_sms' && !canReceiveSms) {
+  if ((action === 'receive_sms' || action === 'send_sms') && !canReceiveSms) {
     return { allowed: false, reason: `Monthly SMS limit reached (${limits.smsPerMonth}). Upgrade your plan.` };
   }
 
@@ -264,6 +265,14 @@ export async function upgradeSubscription(userId: string, planId: 'pro'): Promis
   await db.update(subscriptions)
     .set({ plan: planId })
     .where(eq(subscriptions.userId, userId));
+}
+
+/**
+ * Cancel a Stripe subscription (used during user deletion)
+ */
+export async function cancelSubscription(stripeSubscriptionId: string): Promise<void> {
+  const s = getStripe();
+  await s.subscriptions.cancel(stripeSubscriptionId);
 }
 
 /**

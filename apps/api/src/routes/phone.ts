@@ -105,7 +105,7 @@ app.delete('/numbers/:id', async (c) => {
 app.get('/messages', async (c) => {
   const userId = c.get('userId');
   const limitParam = parseInt(c.req.query('limit') || '50', 10);
-  const limit = isNaN(limitParam) ? 50 : limitParam;
+  const limit = isNaN(limitParam) ? 50 : Math.min(limitParam, 100);
   const phoneNumberId = c.req.query('numberId');
 
   const messages = await phoneService.getMessages(userId, { limit, phoneNumberId });
@@ -133,7 +133,7 @@ app.post('/messages', async (c) => {
   const userId = c.get('userId');
 
   // Check subscription is active before sending (costs real money)
-  const limitCheck = await checkUsageLimit(userId, 'receive_sms');
+  const limitCheck = await checkUsageLimit(userId, 'send_sms');
   if (!limitCheck.allowed) {
     return c.json({
       success: false,

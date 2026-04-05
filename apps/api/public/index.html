@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>botcall - Phone numbers for AI agents</title>
-  <meta name="description" content="Dead simple phone numbers for AI agents. CLI-first. No webhook servers required.">
+  <title>botcall - Phone numbers for Claude Code and AI agents</title>
+  <meta name="description" content="Give Claude a phone number. MCP server for Claude Code and Cursor. Provision numbers, receive SMS, and extract verification codes — no webhook servers required.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☎</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -489,41 +489,48 @@
   </nav>
 
   <section class="hero">
-    <div class="hero-badge">now live</div>
-    <h1>Phone numbers<br>for AI agents</h1>
-    <p>Dead simple CLI for provisioning phone numbers, sending SMS, and receiving verification codes. Built for bots.</p>
-    
+    <div class="hero-badge">MCP server for Claude Code &amp; Cursor</div>
+    <h1>Give Claude<br>a phone number</h1>
+    <p>Add botcall to your Claude config. Ask it to handle verification codes, account setup, or any task that needs SMS — it just works.</p>
+
     <div class="terminal">
       <div class="terminal-header">
         <div class="terminal-dot"></div>
         <div class="terminal-dot"></div>
         <div class="terminal-dot"></div>
-        <span class="terminal-title">terminal</span>
+        <span class="terminal-title">Claude Code conversation</span>
       </div>
       <div class="terminal-body">
         <div class="terminal-line">
-          <span class="terminal-prompt">$</span>
-          <span class="terminal-command">botcall provision --area-code 206</span>
+          <span class="terminal-prompt" style="color:var(--text-dim)">You</span>
+          <span class="terminal-command" style="color:var(--text-muted)">Set up a test account on that service. Handle the SMS verification.</span>
         </div>
-        <div class="terminal-output">✓ Provisioned: <span class="terminal-highlight">+12065551234</span></div>
         <br>
         <div class="terminal-line">
-          <span class="terminal-prompt">$</span>
-          <span class="terminal-command">botcall inbox</span>
+          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
+          <span class="terminal-command" style="color:var(--text-muted)">I'll provision a phone number first.</span>
         </div>
-        <div class="terminal-output">← +15551234567: Your verification code is 847291</div>
+        <div class="terminal-output" style="padding-left:3.5rem">→ botcall_provision()</div>
+        <div class="terminal-output" style="padding-left:3.5rem">✓ Provisioned: <span class="terminal-highlight">+12065550147</span></div>
         <br>
         <div class="terminal-line">
-          <span class="terminal-prompt">$</span>
-          <span class="terminal-command">botcall get-code --timeout 30</span>
+          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
+          <span class="terminal-command" style="color:var(--text-muted)">Account created. Waiting for the verification code...</span>
         </div>
-        <div class="terminal-output"><span class="terminal-highlight">847291</span></div>
+        <div class="terminal-output" style="padding-left:3.5rem">→ botcall_get_code(timeout=60)</div>
+        <div class="terminal-output" style="padding-left:3.5rem">✓ Code: <span class="terminal-highlight">847291</span></div>
+        <br>
+        <div class="terminal-line">
+          <span class="terminal-prompt" style="color:var(--accent)">Claude</span>
+          <span class="terminal-command" style="color:var(--text-muted)">Done. Account verified and ready.</span>
+        </div>
       </div>
     </div>
-    
-    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-      <a href="/dashboard" class="btn btn-primary">Get Started</a>
+
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+      <a href="/dashboard" class="btn btn-primary">Get Started →</a>
       <a href="#features" class="btn">Learn More</a>
+      <span style="font-family:monospace;font-size:0.8rem;color:var(--text-dim)">also: <code style="color:var(--text-muted)">npm i -g botcall</code> for CLI</span>
     </div>
   </section>
 
@@ -531,37 +538,37 @@
     <div class="section-label">// features</div>
     <h2 class="section-title">Built for agents, not humans</h2>
     <p class="section-desc">Everything your AI agent needs to handle phone verification, notifications, and communication.</p>
-    
+
     <div class="features-grid">
       <div class="feature">
         <div class="feature-number">01</div>
-        <h3 class="feature-title">Instant provisioning</h3>
-        <p class="feature-desc">Get a phone number in seconds. US, Canada, UK, and more. No paperwork.</p>
+        <h3 class="feature-title">Claude Code &amp; Cursor MCP</h3>
+        <p class="feature-desc">Native MCP server. Add botcall to your config once — Claude can provision numbers and wait for codes in any conversation.</p>
       </div>
       <div class="feature">
         <div class="feature-number">02</div>
         <h3 class="feature-title">Verification codes</h3>
-        <p class="feature-desc">The get-code command extracts verification codes automatically. No parsing.</p>
+        <p class="feature-desc">botcall_get_code (or <code style="font-size:0.85em">botcall get-code</code>) extracts verification codes automatically. No parsing, no regex.</p>
       </div>
       <div class="feature">
         <div class="feature-number">03</div>
         <h3 class="feature-title">No webhook servers</h3>
-        <p class="feature-desc">Polling-first design. Your agent doesn't need infrastructure to receive messages.</p>
+        <p class="feature-desc">Polling-first design. Your agent doesn't need infrastructure or a public URL to receive messages.</p>
       </div>
       <div class="feature">
         <div class="feature-number">04</div>
-        <h3 class="feature-title">Agent-native</h3>
-        <p class="feature-desc">Works with Claude Code, AutoGPT, LangChain, and any AI agent that needs phone access.</p>
+        <h3 class="feature-title">Instant provisioning</h3>
+        <p class="feature-desc">Get a US phone number in seconds via CLI or MCP. No paperwork, no waiting period.</p>
       </div>
       <div class="feature">
         <div class="feature-number">05</div>
         <h3 class="feature-title">CLI-first</h3>
-        <p class="feature-desc">No web UI needed. Everything works from the command line. Perfect for automation.</p>
+        <p class="feature-desc">Everything works from the command line too. Great for scripts, CI pipelines, and agents that don't use MCP.</p>
       </div>
       <div class="feature">
         <div class="feature-number">06</div>
-        <h3 class="feature-title">Claude Code &amp; Cursor MCP</h3>
-        <p class="feature-desc">Native MCP server for Claude Code and Cursor. Tell Claude to provision a number and wait for a code — no extra code needed.</p>
+        <h3 class="feature-title">Works with any agent</h3>
+        <p class="feature-desc">REST API + CLI + MCP. Plug into Claude Code, LangChain, AutoGPT, or any custom agent framework.</p>
       </div>
     </div>
   </section>

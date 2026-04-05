@@ -2,12 +2,14 @@ import { Hono } from 'hono';
 import { Webhook } from 'svix';
 import { createVerify, createHmac, timingSafeEqual } from 'crypto';
 import { getDb, users, phoneNumbers, smsMessages, usageRecords, apiKeys, subscriptions, eq, and } from '@botcall/db';
-import { createUserFromClerk, createApiKey } from '@botcall/core';
-import { handleIncomingSms, getSmsProvider } from '@botcall/phone';
+import { createUserFromClerk, createApiKey, cancelSubscription } from '@botcall/core';
+import { handleIncomingSms } from '@botcall/phone';
+import { parseTelnyxInbound, parseTwilioInbound, parseSignalWireInbound } from '@botcall/sms-providers';
+import type { InboundMessage } from '@botcall/sms-providers';
 
 const app = new Hono();
 
-// Twilio-compatible HMAC-SHA1 signature verification (used by SignalWire)
+// Twilio-compatible HMAC-SHA1 signature verification (used by SignalWire and Twilio)
 function verifyTwilioSignature(authToken: string, signature: string, url: string, params: Record<string, string>): boolean {
   const sortedParams = Object.keys(params).sort().reduce((str, key) => str + key + params[key], '');
   const expected = createHmac('sha1', authToken).update(url + sortedParams).digest('base64');
@@ -19,6 +21,59 @@ function verifyTwilioSignature(authToken: string, signature: string, url: string
     return timingSafeEqual(a, b);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Shared handler for Twilio-compatible webhooks (SignalWire + Twilio).
+ * Both use the same signature format and form-encoded body.
+ */
+async function handleTwilioCompatibleWebhook(
+  c: any,
+  provider: { name: string; headerName: string; envTokenKey: string; webhookPath: string; parse: (body: Record<string, unknown>) => InboundMessage }
+) {
+  try {
+    const authToken = process.env[provider.envTokenKey];
+    const sig = c.req.header(provider.headerName);
+    const webhookBaseUrl = process.env.WEBHOOK_BASE_URL;
+
+    if (authToken) {
+      if (!sig) {
+        console.error(`❌ [${provider.name}] Missing ${provider.headerName} header`);
+        return c.text('Forbidden', 403);
+      }
+
+      if (!webhookBaseUrl) {
+        console.error(`❌ WEBHOOK_BASE_URL not set — cannot verify ${provider.name} signature`);
+        return c.json({ error: 'Webhook misconfigured' }, 500);
+      }
+
+      const body = await c.req.parseBody() as Record<string, string>;
+      const webhookUrl = `${webhookBaseUrl}${provider.webhookPath}`;
+
+      if (!verifyTwilioSignature(authToken, sig, webhookUrl, body)) {
+        console.error(`❌ [${provider.name}] Invalid signature`);
+        return c.text('Forbidden', 403);
+      }
+
+      console.log(`📱 [${provider.name}] Incoming SMS from ${body['From']} to ${body['To']}`);
+      const parsed = provider.parse(body as Record<string, unknown>);
+      await handleIncomingSms(parsed);
+    } else if (process.env.NODE_ENV === 'production') {
+      console.error(`❌ ${provider.envTokenKey} not set in production`);
+      return c.json({ error: 'Webhook not configured' }, 500);
+    } else {
+      console.warn(`⚠️ ${provider.envTokenKey} not set — skipping signature verification (dev only)`);
+      const body = await c.req.parseBody() as Record<string, string>;
+      console.log(`📱 [${provider.name}] Incoming SMS from ${body['From']} to ${body['To']}`);
+      const parsed = provider.parse(body as Record<string, unknown>);
+      await handleIncomingSms(parsed);
+    }
+
+    return c.text(`<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`, 200, { 'Content-Type': 'text/xml' });
+  } catch (error) {
+    console.error(`${provider.name} SMS webhook error:`, error);
+    return c.json({ error: 'Processing failed' }, 500);
   }
 }
 
@@ -68,9 +123,8 @@ app.post('/telnyx/sms', async (c) => {
 
     console.log(`📱 [Telnyx] Incoming SMS: ${JSON.stringify(payload.data?.payload?.from)} → ${JSON.stringify(payload.data?.payload?.to)}`);
 
-    // Parse using the Telnyx provider parser explicitly
-    const sms = getSmsProvider();
-    const parsed = sms.parseInboundWebhook(payload);
+    // Use Telnyx-specific parser (not the global SMS_PROVIDER)
+    const parsed = parseTelnyxInbound(payload);
     await handleIncomingSms(parsed);
 
     return c.json({ received: true });
@@ -84,59 +138,15 @@ app.post('/telnyx/sms', async (c) => {
  * POST /webhooks/signalwire/sms
  * Receive incoming SMS/MMS from SignalWire
  */
-app.post('/signalwire/sms', async (c) => {
-  try {
-    const authToken = process.env.SIGNALWIRE_API_TOKEN;
-    const sig = c.req.header('x-signalwire-signature');
-    const webhookBaseUrl = process.env.WEBHOOK_BASE_URL;
-
-    if (authToken) {
-      // Signature header is mandatory when auth token is configured
-      if (!sig) {
-        console.error('❌ [SignalWire] Missing x-signalwire-signature header');
-        return c.text('Forbidden', 403);
-      }
-
-      if (!webhookBaseUrl) {
-        console.error('❌ WEBHOOK_BASE_URL not set — cannot verify SignalWire signature');
-        return c.json({ error: 'Webhook misconfigured' }, 500);
-      }
-
-      const body = await c.req.parseBody() as Record<string, string>;
-      const webhookUrl = `${webhookBaseUrl}/webhooks/signalwire/sms`;
-
-      if (!verifyTwilioSignature(authToken, sig, webhookUrl, body)) {
-        console.error('❌ [SignalWire] Invalid signature');
-        return c.text('Forbidden', 403);
-      }
-
-      console.log(`📱 [SignalWire] Incoming SMS from ${body['From']} to ${body['To']}`);
-
-      const sms = getSmsProvider();
-      const parsed = sms.parseInboundWebhook(body as Record<string, unknown>);
-      await handleIncomingSms(parsed);
-    } else {
-      // No auth token — only allow in non-production
-      if (process.env.NODE_ENV === 'production') {
-        console.error('❌ SIGNALWIRE_API_TOKEN not set in production');
-        return c.json({ error: 'Webhook not configured' }, 500);
-      }
-
-      console.warn('⚠️ SIGNALWIRE_API_TOKEN not set — skipping signature verification (dev only)');
-      const body = await c.req.parseBody() as Record<string, string>;
-      console.log(`📱 [SignalWire] Incoming SMS from ${body['From']} to ${body['To']}`);
-
-      const sms = getSmsProvider();
-      const parsed = sms.parseInboundWebhook(body as Record<string, unknown>);
-      await handleIncomingSms(parsed);
-    }
-
-    return c.text(`<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`, 200, { 'Content-Type': 'text/xml' });
-  } catch (error) {
-    console.error('SignalWire SMS webhook error:', error);
-    return c.json({ error: 'Processing failed' }, 500);
-  }
-});
+app.post('/signalwire/sms', (c) =>
+  handleTwilioCompatibleWebhook(c, {
+    name: 'SignalWire',
+    headerName: 'x-signalwire-signature',
+    envTokenKey: 'SIGNALWIRE_API_TOKEN',
+    webhookPath: '/webhooks/signalwire/sms',
+    parse: parseSignalWireInbound,
+  })
+);
 
 /**
  * POST /webhooks/signalwire/voice
@@ -154,53 +164,15 @@ app.post('/signalwire/voice', async (c) => {
  * POST /webhooks/twilio/sms
  * Receive incoming SMS/MMS from Twilio
  */
-app.post('/twilio/sms', async (c) => {
-  try {
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const sig = c.req.header('x-twilio-signature');
-    const webhookBaseUrl = process.env.WEBHOOK_BASE_URL;
-
-    if (authToken) {
-      if (!sig) {
-        console.error('❌ [Twilio] Missing x-twilio-signature header');
-        return c.text('Forbidden', 403);
-      }
-
-      if (!webhookBaseUrl) {
-        console.error('❌ WEBHOOK_BASE_URL not set — cannot verify Twilio signature');
-        return c.json({ error: 'Webhook misconfigured' }, 500);
-      }
-
-      const body = await c.req.parseBody() as Record<string, string>;
-      const webhookUrl = `${webhookBaseUrl}/webhooks/twilio/sms`;
-
-      if (!verifyTwilioSignature(authToken, sig, webhookUrl, body)) {
-        console.error('❌ [Twilio] Invalid signature');
-        return c.text('Forbidden', 403);
-      }
-
-      console.log(`📱 [Twilio] Incoming SMS from ${body['From']} to ${body['To']}`);
-      const sms = getSmsProvider();
-      const parsed = sms.parseInboundWebhook(body as Record<string, unknown>);
-      await handleIncomingSms(parsed);
-    } else if (process.env.NODE_ENV === 'production') {
-      console.error('❌ TWILIO_AUTH_TOKEN not set in production');
-      return c.json({ error: 'Webhook not configured' }, 500);
-    } else {
-      console.warn('⚠️ TWILIO_AUTH_TOKEN not set — skipping signature verification (dev only)');
-      const body = await c.req.parseBody() as Record<string, string>;
-      console.log(`📱 [Twilio] Incoming SMS from ${body['From']} to ${body['To']}`);
-      const sms = getSmsProvider();
-      const parsed = sms.parseInboundWebhook(body as Record<string, unknown>);
-      await handleIncomingSms(parsed);
-    }
-
-    return c.text(`<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`, 200, { 'Content-Type': 'text/xml' });
-  } catch (error) {
-    console.error('Twilio SMS webhook error:', error);
-    return c.json({ error: 'Processing failed' }, 500);
-  }
-});
+app.post('/twilio/sms', (c) =>
+  handleTwilioCompatibleWebhook(c, {
+    name: 'Twilio',
+    headerName: 'x-twilio-signature',
+    envTokenKey: 'TWILIO_AUTH_TOKEN',
+    webhookPath: '/webhooks/twilio/sms',
+    parse: parseTwilioInbound,
+  })
+);
 
 /**
  * POST /webhooks/twilio/voice
@@ -327,15 +299,43 @@ app.post('/clerk', async (c) => {
         return c.json({ received: true });
       }
 
-      // Delete in FK-safe order: messages → usage → keys → phone numbers → subscriptions → user
-      await db.delete(smsMessages).where(eq(smsMessages.userId, user.id));
-      await db.delete(usageRecords).where(eq(usageRecords.userId, user.id));
-      await db.delete(apiKeys).where(eq(apiKeys.userId, user.id));
-      // Mark phone numbers released before deleting (provider already billed; skip API call here)
-      await db.update(phoneNumbers).set({ status: 'released' }).where(eq(phoneNumbers.userId, user.id));
-      await db.delete(phoneNumbers).where(eq(phoneNumbers.userId, user.id));
-      await db.delete(subscriptions).where(eq(subscriptions.userId, user.id));
-      await db.delete(users).where(eq(users.id, user.id));
+      // Cancel Stripe subscription before deleting DB records
+      const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
+      if (sub?.stripeSubscriptionId) {
+        try {
+          await cancelSubscription(sub.stripeSubscriptionId);
+          console.log(`✅ Canceled Stripe subscription ${sub.stripeSubscriptionId}`);
+        } catch (stripeErr) {
+          console.error(`⚠️ Failed to cancel Stripe subscription:`, stripeErr);
+          // Continue with deletion — don't block on Stripe failure
+        }
+      }
+
+      // Release phone numbers from provider before deleting DB records
+      const activeNumbers = await db.select().from(phoneNumbers)
+        .where(and(eq(phoneNumbers.userId, user.id), eq(phoneNumbers.status, 'active')));
+
+      for (const num of activeNumbers) {
+        try {
+          const { createSmsProviderFromEnv } = await import('@botcall/sms-providers');
+          const sms = createSmsProviderFromEnv();
+          await sms.releaseNumber(num.providerSid);
+          console.log(`✅ Released ${num.number} from provider`);
+        } catch (releaseErr) {
+          console.error(`⚠️ Failed to release ${num.number} from provider:`, releaseErr);
+          // Continue — don't block deletion on provider failure
+        }
+      }
+
+      // Delete in FK-safe order within a transaction
+      await db.transaction(async (tx) => {
+        await tx.delete(smsMessages).where(eq(smsMessages.userId, user.id));
+        await tx.delete(usageRecords).where(eq(usageRecords.userId, user.id));
+        await tx.delete(apiKeys).where(eq(apiKeys.userId, user.id));
+        await tx.delete(phoneNumbers).where(eq(phoneNumbers.userId, user.id));
+        await tx.delete(subscriptions).where(eq(subscriptions.userId, user.id));
+        await tx.delete(users).where(eq(users.id, user.id));
+      });
 
       console.log(`✅ User deleted: ${id}`);
     }

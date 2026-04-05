@@ -2,27 +2,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@botcall/phone', () => ({
   handleIncomingSms: vi.fn().mockResolvedValue({}),
-  getSmsProvider: vi.fn(() => ({
-    name: 'telnyx',
-    parseInboundWebhook: vi.fn((body: any) => ({
-      messageSid: body?.data?.id ?? '',
-      from: body?.data?.payload?.from?.phone_number ?? '',
-      to: body?.data?.payload?.to?.[0]?.phone_number ?? '',
-      body: body?.data?.payload?.text ?? '',
-      numMedia: 0,
-      mediaUrls: [],
-    })),
+}));
+vi.mock('@botcall/sms-providers', () => ({
+  parseTelnyxInbound: vi.fn((body: any) => ({
+    messageSid: body?.data?.id ?? '',
+    from: body?.data?.payload?.from?.phone_number ?? '',
+    to: body?.data?.payload?.to?.[0]?.phone_number ?? '',
+    body: body?.data?.payload?.text ?? '',
+    numMedia: 0,
+    mediaUrls: [],
   })),
+  parseSignalWireInbound: vi.fn(),
+  parseTwilioInbound: vi.fn(),
+  createSmsProviderFromEnv: vi.fn(),
 }));
 vi.mock('@botcall/db', () => ({
   getDb: vi.fn(),
   users: {},
   phoneNumbers: {},
+  smsMessages: {},
+  usageRecords: {},
+  apiKeys: {},
+  subscriptions: {},
   eq: vi.fn(),
+  and: vi.fn(),
 }));
 vi.mock('@botcall/core', () => ({
   createUserFromClerk: vi.fn(),
   createApiKey: vi.fn(),
+  cancelSubscription: vi.fn(),
 }));
 
 import { webhookRoutes } from './webhooks.js';

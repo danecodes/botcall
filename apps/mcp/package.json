@@ -1,6 +1,6 @@
 {
   "name": "botcall-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for botcall — phone numbers for AI agents",
   "type": "module",
   "bin": {
@@ -13,7 +13,14 @@
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "ai", "phone", "sms", "verification", "botcall"],
+  "keywords": [
+    "mcp",
+    "ai",
+    "phone",
+    "sms",
+    "verification",
+    "botcall"
+  ],
   "author": "Dane Hesseldahl",
   "license": "MIT",
   "dependencies": {

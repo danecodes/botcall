@@ -50,26 +50,38 @@ export async function provisionNumber(userId: string, options: {
       console.log(`✅ Successfully purchased ${result.phoneNumber} (${result.sid})`);
 
       // Store in our database (transaction ensures both inserts succeed or neither does)
-      const phoneNumber = await db.transaction(async (tx) => {
-        const [pn] = await tx.insert(phoneNumbers).values({
-          userId,
-          number: result.phoneNumber,
-          provider: sms.name,
-          providerSid: result.sid,
-          capabilities: { sms: result.smsEnabled, voice: true, mms: false },
-          status: 'active',
-        }).returning();
+      // If DB fails, release the number back to the provider to avoid orphaned billing
+      let phoneNumber;
+      try {
+        phoneNumber = await db.transaction(async (tx) => {
+          const [pn] = await tx.insert(phoneNumbers).values({
+            userId,
+            number: result.phoneNumber,
+            provider: sms.name,
+            providerSid: result.sid,
+            capabilities: { sms: result.smsEnabled, voice: true, mms: false },
+            status: 'active',
+          }).returning();
 
-        await tx.insert(usageRecords).values({
-          userId,
-          service: 'phone',
-          action: 'number_provisioned',
-          quantity: 1,
-          metadata: { phoneNumberId: pn.id },
+          await tx.insert(usageRecords).values({
+            userId,
+            service: 'phone',
+            action: 'number_provisioned',
+            quantity: 1,
+            metadata: { phoneNumberId: pn.id },
+          });
+
+          return pn;
         });
-
-        return pn;
-      });
+      } catch (dbError) {
+        console.error(`❌ DB insert failed after purchasing ${result.phoneNumber}, releasing number:`, dbError);
+        try {
+          await sms.releaseNumber(result.sid);
+        } catch (releaseError) {
+          console.error(`❌ CRITICAL: Failed to release orphaned number ${result.phoneNumber} (${result.sid}):`, releaseError);
+        }
+        throw dbError;
+      }
 
       return phoneNumber;
     } catch (error) {

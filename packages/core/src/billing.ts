@@ -43,9 +43,14 @@ export const PLANS = getPlans();
 
 export type PlanId = 'inactive' | 'starter' | 'pro';
 
-// Normalize legacy 'free' DB value to 'inactive'
+// Normalize legacy 'free' DB value to 'inactive', validate known plans
+const VALID_PLANS = new Set<string>(['inactive', 'starter', 'pro']);
 function normalizePlan(plan: string | null | undefined): PlanId {
   if (!plan || plan === 'free') return 'inactive';
+  if (!VALID_PLANS.has(plan)) {
+    console.warn(`Unknown plan "${plan}" in DB — defaulting to inactive`);
+    return 'inactive';
+  }
   return plan as PlanId;
 }
 

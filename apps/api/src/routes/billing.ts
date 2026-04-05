@@ -128,12 +128,22 @@ stripeWebhookHandler.post('/stripe', async (c) => {
     return c.json({ error: 'Missing signature' }, 400);
   }
 
+  let payload: string;
   try {
-    const payload = await c.req.text();
+    payload = await c.req.text();
+  } catch (error) {
+    return c.json({ error: 'Invalid request body' }, 400);
+  }
+
+  try {
     await handleStripeWebhook(payload, signature);
     return c.json({ received: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Stripe webhook error:', error);
-    return c.json({ error: 'Webhook failed' }, 400);
+    // Signature verification errors → 400 (don't retry)
+    // Processing errors (DB, network) → 500 (Stripe retries)
+    const isSignatureError = error?.type === 'StripeSignatureVerificationError'
+      || error?.message?.includes('signature');
+    return c.json({ error: 'Webhook failed' }, isSignatureError ? 400 : 500);
   }
 });

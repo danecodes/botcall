@@ -4,7 +4,7 @@ import { createVerify, createHmac, timingSafeEqual } from 'crypto';
 import { getDb, users, phoneNumbers, smsMessages, usageRecords, apiKeys, subscriptions, eq, and } from '@botcall/db';
 import { createUserFromClerk, createApiKey, cancelSubscription } from '@botcall/core';
 import { handleIncomingSms } from '@botcall/phone';
-import { parseTelnyxInbound, parseTwilioInbound, parseSignalWireInbound } from '@botcall/sms-providers';
+import { parseTelnyxInbound, parseTwilioInbound, parseSignalWireInbound, createSmsProviderFromEnv } from '@botcall/sms-providers';
 import type { InboundMessage } from '@botcall/sms-providers';
 
 const app = new Hono();
@@ -315,10 +315,9 @@ app.post('/clerk', async (c) => {
       const activeNumbers = await db.select().from(phoneNumbers)
         .where(and(eq(phoneNumbers.userId, user.id), eq(phoneNumbers.status, 'active')));
 
+      const sms = createSmsProviderFromEnv();
       for (const num of activeNumbers) {
         try {
-          const { createSmsProviderFromEnv } = await import('@botcall/sms-providers');
-          const sms = createSmsProviderFromEnv();
           await sms.releaseNumber(num.providerSid);
           console.log(`✅ Released ${num.number} from provider`);
         } catch (releaseErr) {

@@ -218,7 +218,6 @@ export async function handleIncomingSms(data: InboundMessage) {
  */
 export async function getMessages(userId: string, options: {
   phoneNumberId?: string;
-  direction?: 'inbound' | 'outbound';
   limit?: number;
   since?: string;
 }) {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { eq, and, desc, gte } from 'drizzle-orm';
 import { getDb, phoneNumbers, smsMessages, usageRecords } from '@botcall/db';
 import { createSmsProviderFromEnv, type SmsProvider, type InboundMessage } from '@botcall/sms-providers';
@@ -187,7 +188,7 @@ export async function handleIncomingSms(data: InboundMessage) {
       body: data.body,
       direction: 'inbound',
       status: 'received',
-      providerSid: data.messageSid || null,
+      providerSid: data.messageSid || `fallback-${randomUUID()}`,
       receivedAt: new Date(),
     })
     .onConflictDoNothing({ target: smsMessages.providerSid })
@@ -277,7 +278,7 @@ export async function sendSms(userId: string, to: string, body: string, fromNumb
       body,
       direction: 'outbound',
       status: result.status,
-      providerSid: result.sid || null,
+      providerSid: result.sid || `fallback-${randomUUID()}`,
       receivedAt: new Date(),
     }).returning();
 

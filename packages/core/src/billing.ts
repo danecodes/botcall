@@ -138,9 +138,19 @@ export async function handleStripeWebhook(payload: string, signature: string): P
       // Stripe always sends current_period_end but the SDK types may not expose it in older versions
       const periodEnd = (subscription as any).current_period_end as number;
 
+      // Resolve plan from subscription's current price (source of truth for upgrades/downgrades)
+      const plans = getPlans();
+      const currentPriceId = subscription.items?.data[0]?.price?.id;
+      let plan: PlanId | undefined;
+      if (currentPriceId) {
+        if (currentPriceId === plans.starter.priceId) plan = 'starter';
+        else if (currentPriceId === plans.pro.priceId) plan = 'pro';
+      }
+
       await db.update(subscriptions).set({
         status,
         currentPeriodEnd: new Date(periodEnd * 1000),
+        ...(plan ? { plan } : {}),
       }).where(eq(subscriptions.stripeCustomerId, customerId));
       break;
     }
@@ -261,15 +271,11 @@ export async function upgradeSubscription(userId: string, planId: 'pro'): Promis
   if (!item) throw new Error('Subscription has no items');
 
   // Swap the price in-place (Stripe handles proration)
+  // The customer.subscription.updated webhook will update the plan in our DB
   await s.subscriptions.update(sub.stripeSubscriptionId, {
     items: [{ id: item.id, price: plans[planId].priceId! }],
     proration_behavior: 'always_invoice',
   });
-
-  // Update our DB immediately (webhook will also fire but this ensures consistency)
-  await db.update(subscriptions)
-    .set({ plan: planId })
-    .where(eq(subscriptions.userId, userId));
 }
 
 /**
